@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="$PROJECT_DIR/dist"
 
 echo "=== Building C# assemblies ==="
-dotnet build "$PROJECT_DIR/WildJam2603.csproj" --configuration Release
+dotnet build "$PROJECT_DIR/WildJam2603.sln" --configuration ExportRelease
 
 echo "=== Preparing output directories ==="
 rm -rf "$PROJECT_DIR/build" "$PROJECT_DIR/build_linux" "$DIST_DIR"

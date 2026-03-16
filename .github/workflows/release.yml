@@ -58,7 +58,7 @@ jobs:
         run: |
           echo "--- workspace root ---"
           ls -la
-          dotnet build WildJam2603.sln --configuration Release
+          dotnet build WildJam2603.sln --configuration ExportRelease
 
       - name: Export Windows
         run: |

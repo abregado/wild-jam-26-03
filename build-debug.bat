@@ -13,7 +13,7 @@ if not exist "%PROJECT_DIR%WildJam2603.sln" (
 )
 
 echo === Building C# assemblies (Debug) ===
-dotnet build "%PROJECT_DIR%WildJam2603.sln" --configuration Debug
+dotnet build "%PROJECT_DIR%WildJam2603.sln" --configuration ExportDebug
 if errorlevel 1 (
     echo ERROR: dotnet build failed
     exit /b 1

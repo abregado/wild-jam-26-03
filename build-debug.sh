@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build_debug"
 
 echo "=== Building C# assemblies (Debug) ==="
-dotnet build "$PROJECT_DIR/WildJam2603.csproj" --configuration Debug
+dotnet build "$PROJECT_DIR/WildJam2603.sln" --configuration ExportDebug
 
 echo "=== Preparing output directory ==="
 rm -rf "$BUILD_DIR"
