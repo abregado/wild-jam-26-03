@@ -13,8 +13,8 @@ public partial class PillarPool : Node3D
 {
     private const int PoolCount = 8;
     private const float Spacing = 20f;
-    private const float PillarHeight = 5f;
-    private const float TrackY = 3f;          // Track surface Y
+    private const float PillarHeight = 9f;
+    private const float TrackY = 7f;          // Track surface Y
     private const float PillarY = TrackY - PillarHeight / 2f;
     private const float RecycleBehindZ = 10f; // If pillar.Z < -this, it's behind the player
 

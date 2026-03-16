@@ -17,7 +17,7 @@ using Godot;
 public partial class PlayerCar : Node3D
 {
     public const float XOffset = 8.0f;
-    public const float YHeight = 5.0f;
+    public const float YHeight = 9.0f;
 
     private float _relativeVelocity;
     private float _pitch;
@@ -34,6 +34,15 @@ public partial class PlayerCar : Node3D
     private float _bobTime;
     private const float BobAmplitude = 0.12f;
     private const float BobFrequency = 0.7f; // cycles per second
+
+    // Side switching
+    private bool _onRightSide = true;
+    private bool _isSwitchingSides = false;
+    private float _switchProgress = 0f; // 0 → 1
+    private float _arcStartX;
+    private int _switchArcDir = 0; // +1 = over the top, -1 = under
+    private const float OverArcHeight = 6f;
+    private const float UnderArcHeight = 6f;
 
     public float RelativeVelocity => _relativeVelocity;
 
@@ -94,13 +103,15 @@ public partial class PlayerCar : Node3D
 
         float dt = (float)delta;
 
-        // Bob always runs (even when input disabled during zoom-out)
+        // Bob always runs
         _bobTime += dt;
         float bobOffset = Mathf.Sin(_bobTime * BobFrequency * Mathf.Tau) * BobAmplitude;
 
         if (!_inputEnabled)
         {
-            Position = new Vector3(XOffset, YHeight + bobOffset, Position.Z);
+            _isSwitchingSides = false;
+            float sideX = _onRightSide ? XOffset : -XOffset;
+            Position = new Vector3(sideX, YHeight + bobOffset, Position.Z);
             return;
         }
 
@@ -126,7 +137,47 @@ public partial class PlayerCar : Node3D
         _relativeVelocity = Mathf.Clamp(_relativeVelocity,
             _tsm.MaxRelativeBackward, _tsm.MaxRelativeForward);
 
-        Position = new Vector3(XOffset, YHeight + bobOffset, Position.Z + _relativeVelocity * dt);
+        // Trigger side switch
+        if (!_isSwitchingSides)
+        {
+            if (Input.IsActionJustPressed("switch_side_over"))
+                StartSideSwitch(+1);
+            else if (Input.IsActionJustPressed("switch_side_under"))
+                StartSideSwitch(-1);
+        }
+
+        float newZ = Position.Z + _relativeVelocity * dt;
+
+        if (_isSwitchingSides)
+        {
+            _switchProgress += dt / _config.SideChangeTime;
+            if (_switchProgress >= 1f)
+            {
+                _switchProgress = 1f;
+                _isSwitchingSides = false;
+                _onRightSide = !_onRightSide;
+            }
+            else
+            {
+                float t = _switchProgress;
+                float arcHeight = _switchArcDir > 0 ? OverArcHeight : UnderArcHeight;
+                float newX = _arcStartX * Mathf.Cos(t * Mathf.Pi);
+                float newY = YHeight + _switchArcDir * arcHeight * Mathf.Sin(t * Mathf.Pi);
+                Position = new Vector3(newX, newY + bobOffset, newZ);
+                return;
+            }
+        }
+
+        float sideXPos = _onRightSide ? XOffset : -XOffset;
+        Position = new Vector3(sideXPos, YHeight + bobOffset, newZ);
+    }
+
+    private void StartSideSwitch(int direction)
+    {
+        _isSwitchingSides = true;
+        _switchProgress = 0f;
+        _switchArcDir = direction;
+        _arcStartX = _onRightSide ? XOffset : -XOffset;
     }
 
     public void SetTrainFrontZ(float z) => _trainFrontZ = z;

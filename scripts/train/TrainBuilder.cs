@@ -25,7 +25,7 @@ public partial class TrainBuilder : Node3D
     private const float CarGap = 0.5f;
     private const float CarriageWidth = 3f;
     private const float CarriageHeight = 2.5f;
-    private const float TrackY = 3f;    // Y position of track surface
+    private const float TrackY = 7f;    // Y position of track surface
     private const float CarriageY = TrackY + CarriageHeight / 2f;
 
     private const float ContainerWidth = 2.0f;

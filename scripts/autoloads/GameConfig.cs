@@ -41,6 +41,7 @@ public partial class GameConfig : Node
     public float MaxRelativeVelocity { get; private set; } = 5f;
     public float CarAcceleration { get; private set; } = 5f;
     public float CarDeceleration { get; private set; } = 8f;
+    public float SideChangeTime { get; private set; } = 1.5f;
 
     // Speed
     public float BaseTrainSpeed { get; private set; } = 15f;
@@ -133,6 +134,7 @@ public partial class GameConfig : Node
             MaxRelativeVelocity = GetFloat(p, "max_relative_velocity", MaxRelativeVelocity);
             CarAcceleration = GetFloat(p, "car_acceleration", CarAcceleration);
             CarDeceleration = GetFloat(p, "car_deceleration", CarDeceleration);
+            SideChangeTime = GetFloat(p, "side_change_time", SideChangeTime);
         }
 
         if (data.TryGetValue("speed", out var speedVar))

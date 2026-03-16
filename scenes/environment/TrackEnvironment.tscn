@@ -40,7 +40,7 @@ mesh = SubResource("PlaneMesh_1")
 surface_material_override/0 = SubResource("ShaderMaterial_1")
 
 [node name="TrackMesh" type="MeshInstance3D" parent="."]
-position = Vector3(0, 3.0, -300.0)
+position = Vector3(0, 7.0, -300.0)
 mesh = SubResource("PlaneMesh_2")
 surface_material_override/0 = SubResource("ShaderMaterial_2")
 

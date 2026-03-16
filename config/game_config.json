@@ -34,7 +34,8 @@
     "min_relative_velocity": -15.0,
     "max_relative_velocity": 5.0,
     "car_acceleration": 5.0,
-    "car_deceleration": 8.0
+    "car_deceleration": 8.0,
+    "side_change_time": 3.5
   },
   "speed": {
     "base_train_speed": 15.0,
