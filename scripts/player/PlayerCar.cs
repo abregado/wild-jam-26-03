@@ -60,6 +60,11 @@ public partial class PlayerCar : Node3D
 
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
         _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;
+
+        // Toggle capture on focus regain — fixes Godot/Windows bug where motion
+        // events stop arriving even though the mouse is still technically captured.
+        GetWindow().FocusEntered += OnViewportFocusEntered;
+
         GD.Print("[PlayerCar] Ready. Mouse will auto-capture. Escape = release.");
     }
 
@@ -93,8 +98,16 @@ public partial class PlayerCar : Node3D
 
             // Car body stays fixed. Camera handles both yaw and pitch.
             _camera.RotationDegrees = new Vector3(_pitch, _lookYaw, 0);
-            GetViewport().SetInputAsHandled();
+            // Do NOT call SetInputAsHandled() on motion — it can confuse Godot's input queue.
         }
+    }
+
+    private void OnViewportFocusEntered()
+    {
+        if (!_captureDesired) return;
+        // Cycle through Visible to force the OS to re-register capture.
+        Input.MouseMode = Input.MouseModeEnum.Visible;
+        Input.MouseMode = Input.MouseModeEnum.Captured;
     }
 
     public override void _Process(double delta)
