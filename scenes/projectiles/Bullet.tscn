@@ -19,6 +19,7 @@ radius = 0.22
 script = ExtResource("1")
 
 [node name="MeshSlot" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
 mesh = SubResource("CapsuleMesh_1")
 surface_material_override/0 = SubResource("StandardMaterial3D_1")
 

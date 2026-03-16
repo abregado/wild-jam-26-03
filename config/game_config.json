@@ -5,8 +5,10 @@
     "blast_radius": 1,
     "bullet_speed": 120.0,
     "bullet_size": 0.25,
-    "ammo_per_clip": 10,
-    "reload_time": 2.0
+    "ammo_per_clip": 12,
+    "reload_time": 2.0,
+    "burst_count": 3,
+    "burst_delay": 0.08
   },
   "beacon": {
     "beacon_reload_speed": 1.5,

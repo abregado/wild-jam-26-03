@@ -13,8 +13,10 @@ public partial class GameConfig : Node
     public float BlastRadius { get; private set; } = 2.5f;
     public float BulletSpeed { get; private set; } = 60f;
     public float BulletSize { get; private set; } = 0.55f;
-    public int AmmoPerClip { get; private set; } = 10;
+    public int AmmoPerClip { get; private set; } = 12;
     public float ReloadTime { get; private set; } = 2f;
+    public int BurstCount { get; private set; } = 3;
+    public float BurstDelay { get; private set; } = 0.08f;
 
     // Beacon
     public float BeaconReloadSpeed { get; private set; } = 1.5f;
@@ -86,6 +88,8 @@ public partial class GameConfig : Node
             BulletSize = GetFloat(t, "bullet_size", BulletSize);
             AmmoPerClip = GetInt(t, "ammo_per_clip", AmmoPerClip);
             ReloadTime = GetFloat(t, "reload_time", ReloadTime);
+            BurstCount = GetInt(t, "burst_count", BurstCount);
+            BurstDelay = GetFloat(t, "burst_delay", BurstDelay);
         }
 
         if (data.TryGetValue("beacon", out var beaconVar))
