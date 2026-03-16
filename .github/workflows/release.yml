@@ -55,7 +55,10 @@ jobs:
           mv /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.6.1.stable.mono/
 
       - name: Build C# solution
-        run: dotnet build WildJam2603.sln --configuration Release
+        run: |
+          echo "--- workspace root ---"
+          ls -la
+          dotnet build WildJam2603.sln --configuration Release
 
       - name: Export Windows
         run: |
