@@ -3,10 +3,17 @@ setlocal
 
 set GODOT=D:\Programs\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64.exe
 set PROJECT_DIR=%~dp0
+set PROJECT_DIR_NOSLASH=%PROJECT_DIR:~0,-1%
 set DIST_DIR=%PROJECT_DIR%dist
 
+if not exist "%PROJECT_DIR%WildJam2603.sln" (
+    echo ERROR: WildJam2603.sln not found.
+    echo In the Godot editor: Project ^> Tools ^> C# ^> Create C# Solution
+    exit /b 1
+)
+
 echo === Building C# assemblies ===
-dotnet build "%PROJECT_DIR%WildJam2603.csproj" --configuration Release
+dotnet build "%PROJECT_DIR%WildJam2603.sln" --configuration Release
 if errorlevel 1 (
     echo ERROR: dotnet build failed
     exit /b 1
@@ -21,14 +28,14 @@ mkdir "%PROJECT_DIR%build_linux"
 mkdir "%DIST_DIR%"
 
 echo === Exporting Windows build ===
-"%GODOT%" --headless --path "%PROJECT_DIR%" --export-release "Windows Desktop" "%PROJECT_DIR%build\WildJam2603.exe"
+"%GODOT%" --headless --path "%PROJECT_DIR_NOSLASH%" --export-release "Windows Desktop" "%PROJECT_DIR%build\WildJam2603.exe"
 if errorlevel 1 (
     echo ERROR: Windows export failed
     exit /b 1
 )
 
 echo === Exporting Linux build ===
-"%GODOT%" --headless --path "%PROJECT_DIR%" --export-release "Linux" "%PROJECT_DIR%build_linux\WildJam2603.x86_64"
+"%GODOT%" --headless --path "%PROJECT_DIR_NOSLASH%" --export-release "Linux" "%PROJECT_DIR%build_linux\WildJam2603.x86_64"
 if errorlevel 1 (
     echo ERROR: Linux export failed
     exit /b 1
