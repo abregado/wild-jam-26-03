@@ -1,0 +1,45 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/environment/TrackEnvironment.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/environment/PillarPool.cs" id="2"]
+[ext_resource type="Shader" path="res://scripts/shaders/ground_scroll.gdshader" id="3"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(500.0, 1000.0)
+subdivide_width = 1
+subdivide_depth = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+shader = ExtResource("3")
+shader_parameter/scroll_speed = 10.0
+shader_parameter/base_color = Color(0.76, 0.60, 0.38, 1)
+shader_parameter/detail_color = Color(0.62, 0.48, 0.28, 1)
+shader_parameter/tile_size = 40.0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_2"]
+size = Vector2(4.0, 1000.0)
+subdivide_width = 1
+subdivide_depth = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2"]
+shader = ExtResource("3")
+shader_parameter/scroll_speed = 10.0
+shader_parameter/base_color = Color(0.3, 0.3, 0.35, 1)
+shader_parameter/detail_color = Color(0.25, 0.25, 0.30, 1)
+shader_parameter/tile_size = 20.0
+
+[node name="TrackEnvironment" type="Node3D"]
+script = ExtResource("1")
+
+[node name="GroundPlane" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -300.0)
+mesh = SubResource("PlaneMesh_1")
+surface_material_override/0 = SubResource("ShaderMaterial_1")
+
+[node name="TrackMesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 3.0, -300.0)
+mesh = SubResource("PlaneMesh_2")
+surface_material_override/0 = SubResource("ShaderMaterial_2")
+
+[node name="PillarPool" type="Node3D" parent="."]
+script = ExtResource("2")

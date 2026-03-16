@@ -1,0 +1,45 @@
+{
+  "turret": {
+    "damage": 25.0,
+    "rate_of_fire": 3.0,
+    "blast_radius": 2.5,
+    "bullet_speed": 60.0,
+    "ammo_per_clip": 10,
+    "reload_time": 2.0
+  },
+  "beacon": {
+    "beacon_reload_speed": 1.5,
+    "beacon_speed": 25.0
+  },
+  "train": {
+    "min_carriages": 3,
+    "max_carriages": 6,
+    "min_containers_per_carriage": 1,
+    "max_containers_per_carriage": 3,
+    "min_clamps_per_container": 2,
+    "max_clamps_per_container": 4
+  },
+  "clamps": {
+    "clamp_hitpoints": 50.0
+  },
+  "containers": {
+    "container_hitpoints": 150.0
+  },
+  "player": {
+    "min_relative_velocity": -15.0,
+    "max_relative_velocity": 5.0,
+    "car_acceleration": 5.0,
+    "car_deceleration": 8.0
+  },
+  "speed": {
+    "base_train_speed": 15.0,
+    "speed_increase_per_container": 2.0,
+    "turret_range": 50.0
+  },
+  "cargo_types": [
+    { "name": "Electronics", "color": "#4488FF" },
+    { "name": "Chemicals", "color": "#44FF88" },
+    { "name": "Weapons", "color": "#FF4444" },
+    { "name": "Credits", "color": "#FFCC00" }
+  ]
+}
