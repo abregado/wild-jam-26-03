@@ -39,6 +39,8 @@ public partial class PillarPool : Node3D
             AlbedoColor = new Color(0.55f, 0.55f, 0.55f)
         };
 
+        var pillarShape = new CylinderShape3D { Radius = 0.45f, Height = PillarHeight };
+
         for (int i = 0; i < PoolCount; i++)
         {
             var pillar = new MeshInstance3D
@@ -48,6 +50,11 @@ public partial class PillarPool : Node3D
             };
             float z = i * _spacing;
             pillar.Position = new Vector3(0f, PillarY, z);
+
+            var body = new StaticBody3D { CollisionLayer = 1, CollisionMask = 0 };
+            body.AddChild(new CollisionShape3D { Shape = pillarShape });
+            pillar.AddChild(body);
+
             AddChild(pillar);
             _pillars[i] = pillar;
         }

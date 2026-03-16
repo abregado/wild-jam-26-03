@@ -11,7 +11,8 @@
     "reload_time": 4.0,
     "burst_count": 2,
     "burst_delay": 0.04,
-    "turret_max_pitch_down": 30
+    "turret_max_pitch_down": 30,
+    "auto_fire": true
   },
   "beacon": {
     "beacon_reload_speed": 1.5,
@@ -26,7 +27,7 @@
     "max_clamps_per_container": 4
   },
   "clamps": {
-    "clamp_hitpoints": 50.0
+    "clamp_hitpoints": 40.0
   },
   "containers": {
     "container_hitpoints": 150.0

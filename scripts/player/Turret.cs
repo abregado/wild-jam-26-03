@@ -188,8 +188,10 @@ public partial class Turret : Node3D
         }
 
         // 6. Trigger new burst
-        if (Input.IsActionJustPressed("fire_primary") && !_isReloading
-            && _fireCooldown <= 0f && _burstRemaining <= 0)
+        bool fireInput = _config.AutoFire
+            ? Input.IsActionPressed("fire_primary")
+            : Input.IsActionJustPressed("fire_primary");
+        if (fireInput && !_isReloading && _fireCooldown <= 0f && _burstRemaining <= 0)
         {
             if (_currentAmmo > 0)
                 StartBurst();

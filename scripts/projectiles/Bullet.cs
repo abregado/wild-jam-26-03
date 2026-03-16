@@ -3,11 +3,13 @@ using Godot;
 /// <summary>
 /// Visible projectile. Moves forward at bullet_speed.
 ///
-/// Collision: Area3D on layer 16 (Projectiles, bit 5), mask 6 (Containers=2 + Clamps=4).
+/// Hit detection: per-frame raycast from current → next position (mask 6: Containers+Clamps).
+/// This prevents tunneling at high speeds where Area3D overlap would be missed between frames.
+/// The Area3D in the scene is kept for its collision layer (layer 16) but AreaEntered is unused.
 ///
 /// Hit logic:
-///   If hit Area3D belongs to ClampNode parent  → direct damage to clamp only.
-///   If hit Area3D belongs to ContainerNode parent → direct HP damage + AoE splash to nearby clamps.
+///   Ray hits Area3D whose parent is ClampNode     → direct damage to clamp only.
+///   Ray hits Area3D whose parent is ContainerNode → direct HP damage + AoE splash to nearby clamps.
 ///
 /// Self-destructs on hit or after MaxDistance traveled.
 /// </summary>
@@ -32,12 +34,10 @@ public partial class Bullet : Node3D
     public override void _Ready()
     {
         var config = GetNode<GameConfig>("/root/GameConfig");
-        Scale = Vector3.One * config.BulletSize;
+        // Scale only the mesh — collision shape stays full-size for reliable raycasts.
+        GetNode<MeshInstance3D>("MeshSlot").Scale = Vector3.One * config.BulletSize;
 
         SetupTrail();
-
-        var area = GetNode<Area3D>("Area3D");
-        area.AreaEntered += OnAreaEntered;
     }
 
     private void SetupTrail()
@@ -78,39 +78,53 @@ public partial class Bullet : Node3D
         AddChild(_trail);
     }
 
+    // Mask 7 = layer 1 (World/Train bodies) + layer 2 (Containers) + layer 3 (Clamps)
+    private const uint HitMask = 7u;
+
     public override void _Process(double delta)
     {
         if (_hasHit) return;
 
         float move = _speed * (float)delta;
-        // Forward is -Z in Godot local space (camera/projectile faces its -Z)
-        GlobalPosition += -GlobalTransform.Basis.Z * move;
+        var forward = -GlobalTransform.Basis.Z;
+        var nextPos = GlobalPosition + forward * move;
+
+        // Raycast the full step so fast bullets never tunnel through thin targets.
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var query = PhysicsRayQueryParameters3D.Create(GlobalPosition, nextPos, HitMask);
+        query.CollideWithAreas = true;
+        query.CollideWithBodies = true;
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count > 0)
+        {
+            var hitPos = result["position"].AsVector3();
+
+            // Only Area3D hits deal damage; StaticBody3D hits (train cars, rail, pillars) just stop the bullet.
+            if (result["collider"].As<Area3D>() is { } area)
+            {
+                var parent = area.GetParent();
+                if (parent is ClampNode clamp)
+                    clamp.TakeDamage(_damage);
+                else if (parent is ContainerNode container)
+                {
+                    container.TakeDamage(_damage);
+                    container.TakeSplashDamage(hitPos, _blastRadius, _damage);
+                }
+            }
+
+            GlobalPosition = hitPos;
+            HitAndDestroy();
+            return;
+        }
+
+        GlobalPosition = nextPos;
         _distanceTraveled += move;
 
         if (_distanceTraveled >= MaxDistance)
         {
             DetachTrail();
             QueueFree();
-        }
-    }
-
-    private void OnAreaEntered(Area3D other)
-    {
-        if (_hasHit) return;
-
-        var parent = other.GetParent();
-
-        if (parent is ClampNode clamp)
-        {
-            clamp.TakeDamage(_damage);
-            HitAndDestroy();
-        }
-        else if (parent is ContainerNode container)
-        {
-            // Direct HP damage to the container body, plus AoE splash to nearby clamps
-            container.TakeDamage(_damage);
-            container.TakeSplashDamage(GlobalPosition, _blastRadius, _damage);
-            HitAndDestroy();
         }
     }
 
@@ -125,11 +139,11 @@ public partial class Bullet : Node3D
     private void DetachTrail()
     {
         if (_trail == null || !_trail.IsInsideTree()) return;
-        _trail.Emitting = false;
-        _trail.Reparent(GetTree().Root);
-        var t = _trail.CreateTween();
-        t.TweenInterval(_trail.Lifetime);
-        t.TweenCallback(Callable.From(_trail.QueueFree));
+        var trail = _trail;
+        _trail = null!;
+        trail.Emitting = false;
+        trail.Reparent(GetTree().Root);
+        GetTree().CreateTimer(trail.Lifetime).Timeout += trail.QueueFree;
     }
 
     private void SpawnHitEffect()

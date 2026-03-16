@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/environment/TrackEnvironment.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/environment/PillarPool.cs" id="2"]
@@ -29,6 +29,9 @@ shader_parameter/tile_size = 20.0
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(500.0, 0.5, 1000.0)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_Rail"]
+size = Vector3(0.5, 0.5, 1000.0)
+
 [node name="TrackEnvironment" type="Node3D"]
 script = ExtResource("1")
 
@@ -49,6 +52,14 @@ collision_mask = 0
 
 [node name="GroundCollision" type="CollisionShape3D" parent="GroundBody"]
 shape = SubResource("BoxShape3D_1")
+
+[node name="TrackRailBody" type="StaticBody3D" parent="."]
+position = Vector3(0, 6.75, -300.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="RailCollision" type="CollisionShape3D" parent="TrackRailBody"]
+shape = SubResource("BoxShape3D_Rail")
 
 [node name="PillarPool" type="Node3D" parent="."]
 script = ExtResource("2")

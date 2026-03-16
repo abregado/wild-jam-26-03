@@ -20,6 +20,7 @@ public partial class GameConfig : Node
     public int BurstCount { get; private set; } = 3;
     public float BurstDelay { get; private set; } = 0.08f;
     public float TurretMaxPitchDown { get; private set; } = 20f;
+    public bool AutoFire { get; private set; } = true;
 
     // Beacon
     public float BeaconReloadSpeed { get; private set; } = 1.5f;
@@ -100,6 +101,7 @@ public partial class GameConfig : Node
             BurstCount = GetInt(t, "burst_count", BurstCount);
             BurstDelay = GetFloat(t, "burst_delay", BurstDelay);
             TurretMaxPitchDown = GetFloat(t, "turret_max_pitch_down", TurretMaxPitchDown);
+            AutoFire = GetBool(t, "auto_fire", AutoFire);
         }
 
         if (data.TryGetValue("beacon", out var beaconVar))
@@ -190,6 +192,9 @@ public partial class GameConfig : Node
 
     private static int GetInt(Godot.Collections.Dictionary d, string key, int fallback)
         => d.TryGetValue(key, out var v) ? v.AsInt32() : fallback;
+
+    private static bool GetBool(Godot.Collections.Dictionary d, string key, bool fallback)
+        => d.TryGetValue(key, out var v) ? v.AsBool() : fallback;
 }
 
 public class CargoType
