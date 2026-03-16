@@ -26,6 +26,7 @@ public partial class HUD : CanvasLayer
     private Label _trainSpeedLabel = null!;
     private Label _warningLabel = null!;
     private Label _countdownLabel = null!;
+    private Label _switchUnderIndicator = null!;
     private Label _clickPrompt = null!;
 
     private PlayerCar? _playerCar;
@@ -39,6 +40,7 @@ public partial class HUD : CanvasLayer
         _trainSpeedLabel = GetNode<Label>(TrainSpeedLabelPath);
         _warningLabel = GetNode<Label>(WarningLabelPath);
         _countdownLabel = GetNode<Label>(CountdownLabelPath);
+        _switchUnderIndicator = GetNode<Label>("SwitchUnderIndicator");
         _clickPrompt = GetNode<Label>("ClickPrompt");
 
         HideWarning();
@@ -70,6 +72,9 @@ public partial class HUD : CanvasLayer
 
         // Train speed
         _trainSpeedLabel.Text = $"Train: {tsm.CurrentTrainSpeed:F0} u/s";
+
+        // Under-switch clearance indicator
+        _switchUnderIndicator.Visible = _playerCar.CanSwitchUnder;
 
         // Hide click prompt once mouse is captured
         _clickPrompt.Visible = Input.MouseMode != Input.MouseModeEnum.Captured;

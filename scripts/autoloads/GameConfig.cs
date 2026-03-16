@@ -19,6 +19,7 @@ public partial class GameConfig : Node
     public float ReloadTime { get; private set; } = 2f;
     public int BurstCount { get; private set; } = 3;
     public float BurstDelay { get; private set; } = 0.08f;
+    public float TurretMaxPitchDown { get; private set; } = 20f;
 
     // Beacon
     public float BeaconReloadSpeed { get; private set; } = 1.5f;
@@ -47,6 +48,9 @@ public partial class GameConfig : Node
     public float BaseTrainSpeed { get; private set; } = 15f;
     public float SpeedIncreasePerContainer { get; private set; } = 2f;
     public float TurretRange { get; private set; } = 50f;
+
+    // Environment
+    public float PillarSpacing { get; private set; } = 20f;
 
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
@@ -95,6 +99,7 @@ public partial class GameConfig : Node
             ReloadTime = GetFloat(t, "reload_time", ReloadTime);
             BurstCount = GetInt(t, "burst_count", BurstCount);
             BurstDelay = GetFloat(t, "burst_delay", BurstDelay);
+            TurretMaxPitchDown = GetFloat(t, "turret_max_pitch_down", TurretMaxPitchDown);
         }
 
         if (data.TryGetValue("beacon", out var beaconVar))
@@ -143,6 +148,12 @@ public partial class GameConfig : Node
             BaseTrainSpeed = GetFloat(s, "base_train_speed", BaseTrainSpeed);
             SpeedIncreasePerContainer = GetFloat(s, "speed_increase_per_container", SpeedIncreasePerContainer);
             TurretRange = GetFloat(s, "turret_range", TurretRange);
+        }
+
+        if (data.TryGetValue("environment", out var envVar))
+        {
+            var e = envVar.AsGodotDictionary();
+            PillarSpacing = GetFloat(e, "pillar_spacing", PillarSpacing);
         }
 
         if (data.TryGetValue("cargo_types", out var cargoVar))

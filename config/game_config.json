@@ -10,7 +10,8 @@
     "ammo_per_clip": 30,
     "reload_time": 4.0,
     "burst_count": 2,
-    "burst_delay": 0.04
+    "burst_delay": 0.04,
+    "turret_max_pitch_down": 30
   },
   "beacon": {
     "beacon_reload_speed": 1.5,
@@ -41,6 +42,9 @@
     "base_train_speed": 15.0,
     "speed_increase_per_container": 2.0,
     "turret_range": 100.0
+  },
+  "environment": {
+    "pillar_spacing": 20.0
   },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },

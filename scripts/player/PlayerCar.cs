@@ -43,8 +43,13 @@ public partial class PlayerCar : Node3D
     private int _switchArcDir = 0; // +1 = over the top, -1 = under
     private const float OverArcHeight = 6f;
     private const float UnderArcHeight = 6f;
+    private const float PillarCollisionRadius = 2.5f; // world-Z half-range for pillar collision
+
+    private PillarPool? _pillarPool;
+    private bool _canSwitchUnder = true;
 
     public float RelativeVelocity => _relativeVelocity;
+    public bool CanSwitchUnder => _canSwitchUnder;
 
     public override void _Ready()
     {
@@ -54,6 +59,7 @@ public partial class PlayerCar : Node3D
         _turret = GetNode<Turret>("Turret");
 
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
+        _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;
         GD.Print("[PlayerCar] Ready. Mouse will auto-capture. Escape = release.");
     }
 
@@ -137,12 +143,15 @@ public partial class PlayerCar : Node3D
         _relativeVelocity = Mathf.Clamp(_relativeVelocity,
             _tsm.MaxRelativeBackward, _tsm.MaxRelativeForward);
 
+        // Update pole-clearance check every frame for HUD
+        _canSwitchUnder = !_isSwitchingSides && PredictUnderArcClear();
+
         // Trigger side switch
         if (!_isSwitchingSides)
         {
             if (Input.IsActionJustPressed("switch_side_over"))
                 StartSideSwitch(+1);
-            else if (Input.IsActionJustPressed("switch_side_under"))
+            else if (Input.IsActionJustPressed("switch_side_under") && _canSwitchUnder)
                 StartSideSwitch(-1);
         }
 
@@ -170,6 +179,33 @@ public partial class PlayerCar : Node3D
 
         float sideXPos = _onRightSide ? XOffset : -XOffset;
         Position = new Vector3(sideXPos, YHeight + bobOffset, newZ);
+    }
+
+    /// <summary>
+    /// Predicts the two Z positions where the player crosses a pillar's X during the under-arc,
+    /// then checks whether any pillar will be at those world-Z positions at those times.
+    /// Returns true when no collision is predicted.
+    /// </summary>
+    private bool PredictUnderArcClear()
+    {
+        if (_pillarPool == null) return true;
+
+        // Fraction of arc at which player X crosses PillarX (symmetric on both sides)
+        float tFrac = Mathf.Acos(PillarPool.PillarX / XOffset) / Mathf.Pi;
+        float t1 = tFrac * _config.SideChangeTime;
+        float t2 = (1f - tFrac) * _config.SideChangeTime;
+
+        // In world space: player moves at relativeVelocity, pillars move at -trainSpeed.
+        // A pillar at current world Z = pZ will be at pZ - trainSpeed*t when the player
+        // reaches world Z = Position.Z + relVelocity*t.
+        // Collision when: Position.Z + relVelocity*t == pZ - trainSpeed*t
+        //              →  pZ == Position.Z + (relVelocity + trainSpeed) * t
+        float combinedSpeed = _relativeVelocity + _tsm.CurrentTrainSpeed;
+        float targetZ1 = Position.Z + combinedSpeed * t1;
+        float targetZ2 = Position.Z + combinedSpeed * t2;
+
+        return !_pillarPool.HasPillarNearZ(targetZ1, PillarCollisionRadius)
+            && !_pillarPool.HasPillarNearZ(targetZ2, PillarCollisionRadius);
     }
 
     private void StartSideSwitch(int direction)

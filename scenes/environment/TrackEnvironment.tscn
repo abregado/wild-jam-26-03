@@ -16,10 +16,8 @@ shader_parameter/base_color = Color(0.76, 0.60, 0.38, 1)
 shader_parameter/detail_color = Color(0.62, 0.48, 0.28, 1)
 shader_parameter/tile_size = 40.0
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_2"]
-size = Vector2(4.0, 1000.0)
-subdivide_width = 1
-subdivide_depth = 1
+[sub_resource type="BoxMesh" id="PlaneMesh_2"]
+size = Vector3(0.5, 0.5, 1000.0)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_2"]
 shader = ExtResource("3")
@@ -40,7 +38,7 @@ mesh = SubResource("PlaneMesh_1")
 surface_material_override/0 = SubResource("ShaderMaterial_1")
 
 [node name="TrackMesh" type="MeshInstance3D" parent="."]
-position = Vector3(0, 7.0, -300.0)
+position = Vector3(0, 6.75, -300.0)
 mesh = SubResource("PlaneMesh_2")
 surface_material_override/0 = SubResource("ShaderMaterial_2")
 

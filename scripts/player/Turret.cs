@@ -138,6 +138,10 @@ public partial class Turret : Node3D
         // 2. Slerp turret rotation toward camera's forward direction.
         //    When fully tracked, turret -Z == camera forward == screen centre == crosshair.
         var cameraForward = -_camera.GlobalTransform.Basis.Z;
+        // Clamp how far down the turret can pitch.
+        float minY = -Mathf.Sin(Mathf.DegToRad(_config.TurretMaxPitchDown));
+        if (cameraForward.Y < minY)
+            cameraForward = new Vector3(cameraForward.X, minY, cameraForward.Z).Normalized();
         if (cameraForward.LengthSquared() > 0.25f)
         {
             var targetBasis = Basis.LookingAt(cameraForward, Vector3.Up);

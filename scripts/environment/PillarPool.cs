@@ -12,17 +12,21 @@ using Godot;
 public partial class PillarPool : Node3D
 {
     private const int PoolCount = 8;
-    private const float Spacing = 20f;
     private const float PillarHeight = 9f;
     private const float TrackY = 7f;          // Track surface Y
     private const float PillarY = TrackY - PillarHeight / 2f;
     private const float RecycleBehindZ = 10f; // If pillar.Z < -this, it's behind the player
 
+    public const float PillarX = 0f; // Pillars are centred on the track
+
     private readonly MeshInstance3D[] _pillars = new MeshInstance3D[PoolCount];
     private float _moveSpeed;
+    private float _spacing;
 
     public override void _Ready()
     {
+        _spacing = GetNode<GameConfig>("/root/GameConfig").PillarSpacing;
+
         var cylinderMesh = new CylinderMesh
         {
             Height = PillarHeight,
@@ -42,14 +46,20 @@ public partial class PillarPool : Node3D
                 Mesh = cylinderMesh,
                 MaterialOverride = mat
             };
-            // Spread pillars ahead (positive Z = ahead in our convention)
-            float z = i * Spacing;
-            // Alternate left/right of track
-            float x = (i % 2 == 0) ? -1.5f : 1.5f;
-            pillar.Position = new Vector3(x, PillarY, z);
+            float z = i * _spacing;
+            pillar.Position = new Vector3(0f, PillarY, z);
             AddChild(pillar);
             _pillars[i] = pillar;
         }
+    }
+
+    /// <summary>Returns true if any pillar's world Z is within halfRange of worldZ.</summary>
+    public bool HasPillarNearZ(float worldZ, float halfRange)
+    {
+        foreach (var p in _pillars)
+            if (p != null && Mathf.Abs(p.GlobalPosition.Z - worldZ) < halfRange)
+                return true;
+        return false;
     }
 
     public void SetMoveSpeed(float speed)
@@ -82,7 +92,7 @@ public partial class PillarPool : Node3D
                 _pillars[i].Position = new Vector3(
                     _pillars[i].Position.X,
                     _pillars[i].Position.Y,
-                    maxZ + Spacing
+                    maxZ + _spacing
                 );
             }
         }
