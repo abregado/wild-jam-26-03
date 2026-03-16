@@ -1,16 +1,16 @@
 {
   "turret": {
-    "damage": 25.0,
+    "damage": 20.0,
     "rate_of_fire": 3.0,
     "blast_radius": 1,
     "turret_tracking_speed": 6.0,
     "bullet_speed": 120.0,
     "bullet_size": 0.25,
     "trail_thickness": 0.09,
-    "ammo_per_clip": 12,
-    "reload_time": 2.0,
-    "burst_count": 3,
-    "burst_delay": 0.08
+    "ammo_per_clip": 30,
+    "reload_time": 4.0,
+    "burst_count": 2,
+    "burst_delay": 0.04
   },
   "beacon": {
     "beacon_reload_speed": 1.5,

@@ -22,6 +22,7 @@ public partial class TrainBuilder : Node3D
     private const float CarriageLength = 12f;
     private const float LocoLength = 10f;
     private const float CabooseLength = 8f;
+    private const float CarGap = 0.5f;
     private const float CarriageWidth = 3f;
     private const float CarriageHeight = 2.5f;
     private const float TrackY = 3f;    // Y position of track surface
@@ -64,8 +65,9 @@ public partial class TrainBuilder : Node3D
 
         int numCarriages = rng.RandiRange(_config.MinCarriages, _config.MaxCarriages);
 
-        // Total length: caboose + carriages + loco
-        float totalLength = CabooseLength + numCarriages * CarriageLength + LocoLength;
+        // Total length: caboose + carriages + loco (plus gaps between each car)
+        int numGaps = 1 + numCarriages + 1; // caboose→carriage(s)→loco
+        float totalLength = CabooseLength + numCarriages * CarriageLength + LocoLength + numGaps * CarGap;
 
         // Caboose at Z=0, locomotive at Z=totalLength
         float currentZ = 0f;
@@ -75,7 +77,7 @@ public partial class TrainBuilder : Node3D
                                     new Color(0.4f, 0.2f, 0.1f));
         caboose.Position = new Vector3(0, CarriageY, currentZ + CabooseLength / 2f);
         AddChild(caboose);
-        currentZ += CabooseLength;
+        currentZ += CabooseLength + CarGap;
 
         // --- Carriages ---
         for (int i = 0; i < numCarriages; i++)
@@ -90,7 +92,7 @@ public partial class TrainBuilder : Node3D
             int numContainers = rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage);
             AttachContainers(carriageInstance, numContainers, zCenter, rng);
 
-            currentZ += CarriageLength;
+            currentZ += CarriageLength + CarGap;
         }
 
         // --- Locomotive ---
