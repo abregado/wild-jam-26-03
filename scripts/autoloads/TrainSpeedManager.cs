@@ -14,6 +14,7 @@ using Godot;
 public partial class TrainSpeedManager : Node
 {
     public float CurrentTrainSpeed { get; private set; }
+    public float TrainZoomSpeed { get; private set; }
     public float MaxRelativeForward { get; private set; }
     public float MaxRelativeBackward { get; private set; }
 
@@ -62,7 +63,8 @@ public partial class TrainSpeedManager : Node
     public void TriggerZoomAway()
     {
         _isZoomingAway = true;
-        CurrentTrainSpeed *= 10f;
+        TrainZoomSpeed = CurrentTrainSpeed * 10f; // train physically moves away at 10× speed
+        CurrentTrainSpeed = 0f;                   // environment scroll stops — player has halted
         MaxRelativeForward = float.MinValue / 2f;
         GD.Print("[TrainSpeedManager] Zoom away triggered!");
     }

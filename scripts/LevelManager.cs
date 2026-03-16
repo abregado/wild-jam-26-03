@@ -80,8 +80,8 @@ public partial class LevelManager : Node
 
         if (_zoomTriggered)
         {
-            // Physically move the train away so it visually zooms off
-            _trainBuilder.Position += new Vector3(0f, 0f, _tsm.CurrentTrainSpeed * dt);
+            // Physically move the train away — uses zoom speed, not scroll speed
+            _trainBuilder.Position += new Vector3(0f, 0f, _tsm.TrainZoomSpeed * dt);
 
             _zoomTimer -= dt;
             if (_zoomTimer <= 0f)
