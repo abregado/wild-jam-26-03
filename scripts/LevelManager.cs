@@ -39,8 +39,8 @@ public partial class LevelManager : Node
         _hud = GetParent().GetNode<HUD>("HUD");
         _trainBuilder = GetParent().GetNode<TrainBuilder>("Train");
 
-        // Position player near the middle of the train at start (in range)
-        float startZ = _trainBuilder.LocomotiveZ * 0.6f;
+        // Position player near the front of the locomotive at start
+        float startZ = _trainBuilder.LocomotiveZ - 4f;
         _playerCar.Position = new Vector3(PlayerCar.XOffset, PlayerCar.YHeight, startZ);
         _playerCar.SetTrainFrontZ(_trainBuilder.LocomotiveZ);
         GD.Print($"[LevelManager] Train LocomotiveZ={_trainBuilder.LocomotiveZ}, PlayerStart Z={startZ}");

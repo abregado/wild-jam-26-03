@@ -12,6 +12,7 @@ public partial class GameConfig : Node
     public float RateOfFire { get; private set; } = 3f;
     public float BlastRadius { get; private set; } = 2.5f;
     public float BulletSpeed { get; private set; } = 60f;
+    public float BulletSize { get; private set; } = 0.55f;
     public int AmmoPerClip { get; private set; } = 10;
     public float ReloadTime { get; private set; } = 2f;
 
@@ -82,6 +83,7 @@ public partial class GameConfig : Node
             RateOfFire = GetFloat(t, "rate_of_fire", RateOfFire);
             BlastRadius = GetFloat(t, "blast_radius", BlastRadius);
             BulletSpeed = GetFloat(t, "bullet_speed", BulletSpeed);
+            BulletSize = GetFloat(t, "bullet_size", BulletSize);
             AmmoPerClip = GetInt(t, "ammo_per_clip", AmmoPerClip);
             ReloadTime = GetFloat(t, "reload_time", ReloadTime);
         }

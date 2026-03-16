@@ -31,6 +31,9 @@ public partial class PlayerCar : Node3D
     private bool _inputEnabled = true;
     private float _trainFrontZ = 60f;
     private bool _captureDesired = true; // false while player has released mouse with Escape
+    private float _bobTime;
+    private const float BobAmplitude = 0.12f;
+    private const float BobFrequency = 0.7f; // cycles per second
 
     public float RelativeVelocity => _relativeVelocity;
 
@@ -89,9 +92,18 @@ public partial class PlayerCar : Node3D
                 GD.Print("[PlayerCar] Mouse captured.");
         }
 
-        if (!_inputEnabled) return;
-
         float dt = (float)delta;
+
+        // Bob always runs (even when input disabled during zoom-out)
+        _bobTime += dt;
+        float bobOffset = Mathf.Sin(_bobTime * BobFrequency * Mathf.Tau) * BobAmplitude;
+
+        if (!_inputEnabled)
+        {
+            Position = new Vector3(XOffset, YHeight + bobOffset, Position.Z);
+            return;
+        }
+
         float accel = _config.CarAcceleration;
         float decel = _config.CarDeceleration;
 
@@ -114,7 +126,7 @@ public partial class PlayerCar : Node3D
         _relativeVelocity = Mathf.Clamp(_relativeVelocity,
             _tsm.MaxRelativeBackward, _tsm.MaxRelativeForward);
 
-        Position = new Vector3(XOffset, YHeight, Position.Z + _relativeVelocity * dt);
+        Position = new Vector3(XOffset, YHeight + bobOffset, Position.Z + _relativeVelocity * dt);
     }
 
     public void SetTrainFrontZ(float z) => _trainFrontZ = z;

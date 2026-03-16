@@ -2,8 +2,9 @@
   "turret": {
     "damage": 25.0,
     "rate_of_fire": 3.0,
-    "blast_radius": 2.5,
-    "bullet_speed": 60.0,
+    "blast_radius": 1,
+    "bullet_speed": 120.0,
+    "bullet_size": 0.25,
     "ammo_per_clip": 10,
     "reload_time": 2.0
   },
@@ -12,8 +13,8 @@
     "beacon_speed": 25.0
   },
   "train": {
-    "min_carriages": 3,
-    "max_carriages": 6,
+    "min_carriages": 6,
+    "max_carriages": 9,
     "min_containers_per_carriage": 1,
     "max_containers_per_carriage": 3,
     "min_clamps_per_container": 2,
@@ -34,7 +35,7 @@
   "speed": {
     "base_train_speed": 15.0,
     "speed_increase_per_container": 2.0,
-    "turret_range": 50.0
+    "turret_range": 100.0
   },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },
