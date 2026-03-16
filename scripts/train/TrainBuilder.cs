@@ -129,6 +129,7 @@ public partial class TrainBuilder : Node3D
             containerInstance.CargoDetached += gameSession.OnCargoDetached;
             containerInstance.CargoDetached += _ => trainSpeedManager.OnContainerDetached();
             containerInstance.ContainerDestroyed += gameSession.OnContainerDestroyed;
+            containerInstance.ContainerDestroyed += trainSpeedManager.OnContainerDestroyed;
 
             AttachClamps(containerInstance, rng);
             AllContainers.Add(containerInstance);
@@ -156,12 +157,20 @@ public partial class TrainBuilder : Node3D
     private static Node3D CreateBoxCar(string name, Vector3 size, Color color)
     {
         var node = new Node3D { Name = name };
+
         var mesh = new MeshInstance3D { Name = "MeshSlot" };
         var box = new BoxMesh { Size = size };
         var mat = new StandardMaterial3D { AlbedoColor = color };
         box.Material = mat;
         mesh.Mesh = box;
         node.AddChild(mesh);
+
+        // Layer 1 (World/Train) — detectable by aim raycasts but not by bullets
+        var body = new StaticBody3D { CollisionLayer = 1, CollisionMask = 0, Name = "TrainBody" };
+        var col = new CollisionShape3D { Shape = new BoxShape3D { Size = size } };
+        body.AddChild(col);
+        node.AddChild(body);
+
         return node;
     }
 

@@ -7,23 +7,31 @@ using System.Collections.Generic;
 /// Hit detection: Area3D on collision layer 2 (Containers), mask 16 (Projectiles).
 ///
 /// Signals:
-///   CargoDetached(string cargoName) — emitted when all clamps destroyed, cargo auto-collected.
-///   ContainerDestroyed            — emitted when HP reaches 0 (cargo lost, not collected).
+///   CargoDetached(string cargoName) — cargo successfully recovered (collected).
+///   ContainerDestroyed            — cargo lost (either HP=0 or failed recovery roll).
 ///
-/// TakeDamage(amount): reduces HP; at 0 calls Explode().
-/// TakeSplashDamage(origin, radius, amount): sphere-checks all registered clamps.
-/// When tagged (isTagged=true), mesh material color changes to cargo type color.
+/// Recovery chance (on clamp-destruction detach):
+///   Base: 20% + 60% * (remainingHpPercent)  → 20%–80%
+///   1 beacon: +40% bonus (capped at 100%)
+///   2+ beacons: always recovered
+///
+/// Visual:
+///   Untagged  — bright orange
+///   1 beacon  — cargo colour
+///   2 beacons — cargo colour + emission glow (guaranteed recovery)
 /// </summary>
 public partial class ContainerNode : Node3D
 {
     [Signal] public delegate void CargoDetachedEventHandler(string cargoName);
     [Signal] public delegate void ContainerDestroyedEventHandler();
 
-    public bool IsTagged { get; private set; }
+    public bool IsTagged => _beaconCount > 0;
     public string CargoName { get; private set; } = "Unknown";
     public Color CargoColor { get; private set; } = Colors.Gray;
 
+    private float _maxHp;
     private float _hp;
+    private int _beaconCount;
     private readonly List<ClampNode> _clamps = new();
     private int _livingClamps;
     private MeshInstance3D _mesh = null!;
@@ -33,19 +41,17 @@ public partial class ContainerNode : Node3D
     public override void _Ready()
     {
         var config = GetNode<GameConfig>("/root/GameConfig");
-        _hp = config.ContainerHitpoints;
+        _maxHp = config.ContainerHitpoints;
+        _hp = _maxHp;
 
         _mesh = GetNode<MeshInstance3D>("MeshSlot");
 
-        // Create a unique material per container so color changes are independent.
-        // Bright orange untagged = clearly visible, distinct from grey carriages.
         _material = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.95f, 0.5f, 0.05f) // Bright orange (untagged)
+            AlbedoColor = new Color(0.95f, 0.5f, 0.05f) // bright orange (untagged)
         };
         _mesh.MaterialOverride = _material;
 
-        // Connect Area3D signal
         var area = GetNodeOrNull<Area3D>("Area3D");
         if (area != null)
             area.AreaEntered += OnAreaEntered;
@@ -73,24 +79,37 @@ public partial class ContainerNode : Node3D
             Explode();
     }
 
-    /// <summary>AoE splash check centered on origin, damages clamps within radius.</summary>
+    /// <summary>AoE splash check centred on origin — damages clamps within radius.</summary>
     public void TakeSplashDamage(Vector3 origin, float radius, float clampDamage)
     {
         if (_isDead) return;
         foreach (var clamp in _clamps)
         {
             if (!clamp.IsAlive) continue;
-            float dist = clamp.GlobalPosition.DistanceTo(origin);
-            if (dist <= radius)
+            if (clamp.GlobalPosition.DistanceTo(origin) <= radius)
                 clamp.TakeDamage(clampDamage);
         }
     }
 
+    /// <summary>
+    /// Tags the container with a beacon. First tag reveals cargo colour.
+    /// Second tag adds emission glow (indicates guaranteed recovery).
+    /// </summary>
     public void Tag()
     {
-        if (IsTagged) return;
-        IsTagged = true;
-        _material.AlbedoColor = CargoColor;
+        _beaconCount++;
+
+        if (_beaconCount == 1)
+        {
+            _material.AlbedoColor = CargoColor;
+        }
+        else if (_beaconCount == 2)
+        {
+            _material.AlbedoColor = CargoColor;
+            _material.EmissionEnabled = true;
+            _material.Emission = CargoColor;
+            _material.EmissionEnergyMultiplier = 3f;
+        }
     }
 
     private void OnClampDestroyed()
@@ -105,9 +124,26 @@ public partial class ContainerNode : Node3D
         if (_isDead) return;
         _isDead = true;
 
-        EmitSignal(SignalName.CargoDetached, CargoName);
+        // Recovery chance:
+        //   Base 20%–80% based on remaining HP %.
+        //   1 beacon: +40% bonus.
+        //   2+ beacons: guaranteed.
+        float healthPercent = _maxHp > 0f ? Mathf.Clamp(_hp / _maxHp, 0f, 1f) : 0f;
+        float chance = 0.2f + 0.6f * healthPercent;
 
-        // Fall animation: tween Y down
+        if (_beaconCount >= 2)
+            chance = 1f;
+        else if (_beaconCount == 1)
+            chance = Mathf.Min(chance + 0.4f, 1f);
+
+        bool recovered = GD.Randf() < chance;
+
+        if (recovered)
+            EmitSignal(SignalName.CargoDetached, CargoName);
+        else
+            EmitSignal(SignalName.ContainerDestroyed);
+
+        // Fall off the train
         var tween = CreateTween();
         tween.TweenProperty(this, "position:y", GlobalPosition.Y - 15f, 1.5f)
              .SetEase(Tween.EaseType.In)
@@ -122,7 +158,6 @@ public partial class ContainerNode : Node3D
 
         EmitSignal(SignalName.ContainerDestroyed);
 
-        // Placeholder explosion: flash white then disappear
         _material.AlbedoColor = Colors.White;
         _material.EmissionEnabled = true;
         _material.Emission = Colors.OrangeRed;
@@ -134,7 +169,6 @@ public partial class ContainerNode : Node3D
 
     private void OnAreaEntered(Area3D other)
     {
-        // Bullet/Beacon hit detection is handled by the projectile script checking container vs clamp.
-        // This is a fallback — projectiles do their own hit resolution.
+        // Projectile hit resolution is handled by the projectile scripts.
     }
 }

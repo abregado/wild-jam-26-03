@@ -3,6 +3,7 @@
     "damage": 25.0,
     "rate_of_fire": 3.0,
     "blast_radius": 1,
+    "turret_tracking_speed": 6.0,
     "bullet_speed": 120.0,
     "bullet_size": 0.25,
     "ammo_per_clip": 12,

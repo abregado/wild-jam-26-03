@@ -34,8 +34,13 @@ public partial class TrainSpeedManager : Node
         MaxRelativeBackward = _config.MinRelativeVelocity;
     }
 
-    /// <summary>Called by GameSession when a container detaches.</summary>
-    public void OnContainerDetached()
+    /// <summary>Called when a container detaches (cargo collected).</summary>
+    public void OnContainerDetached() => ApplySpeedIncrease();
+
+    /// <summary>Called when a container is destroyed (cargo lost).</summary>
+    public void OnContainerDestroyed() => ApplySpeedIncrease();
+
+    private void ApplySpeedIncrease()
     {
         if (_isZoomingAway) return;
         CurrentTrainSpeed += _config.SpeedIncreasePerContainer;

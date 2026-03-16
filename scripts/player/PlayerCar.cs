@@ -42,7 +42,7 @@ public partial class PlayerCar : Node3D
         _config = GetNode<GameConfig>("/root/GameConfig");
         _tsm = GetNode<TrainSpeedManager>("/root/TrainSpeedManager");
         _camera = GetNode<Camera3D>("Camera3D");
-        _turret = GetNode<Turret>("Camera3D/Turret");
+        _turret = GetNode<Turret>("Turret");
 
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
         GD.Print("[PlayerCar] Ready. Mouse will auto-capture. Escape = release.");

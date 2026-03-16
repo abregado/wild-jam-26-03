@@ -12,7 +12,7 @@ public partial class Main : Node3D
         // Wire HUD to PlayerCar and Turret
         var hud = GetNode<HUD>("HUD");
         var playerCar = GetNode<PlayerCar>("PlayerCar");
-        var turret = playerCar.GetNode<Turret>("Camera3D/Turret");
+        var turret = playerCar.GetNode<Turret>("Turret");
         hud.SetReferences(playerCar, turret);
 
         GD.Print("[Main] Scene ready. Game starting.");

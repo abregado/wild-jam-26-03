@@ -4,14 +4,17 @@ using Godot;
 /// Turret script. Handles primary fire (burst bullets) and secondary fire (beacons).
 /// Attach to the "Turret" node inside Camera3D inside PlayerCar.
 ///
-/// Aiming: each frame casts a physics ray from camera centre. A red dot tracks the hit
-/// point in 3D space. Bullets fire from BarrelTip toward that point.
+/// Aiming:
+///   Each frame a physics ray is cast from the camera centre (mask: containers+clamps).
+///   A red dot MeshInstance3D (parented to scene root) is placed at the hit point.
+///   The turret slerps its GlobalTransform toward LookingAt(aimPoint) at TurretTrackingSpeed.
+///   Bullets fire along the turret's actual -Z (so tracking lag matters).
 ///
-/// Burst fire: one trigger press fires BurstCount bullets with BurstDelay between each.
-/// RateOfFire controls how often a new burst can be started.
+/// Burst fire: one press fires BurstCount bullets with BurstDelay between each.
+///   RateOfFire controls the minimum time between burst starts.
 ///
-/// Muzzle flash: brief emissive sphere + OmniLight at barrel tip on each shot.
-/// Barrel retract: barrels snap back in +Z on each shot then spring forward.
+/// Muzzle flash: brief emissive sphere + OmniLight at barrel tip each shot.
+/// Barrel retract: barrels snap to recoil position then spring back with elastic easing.
 /// </summary>
 public partial class Turret : Node3D
 {
@@ -24,7 +27,11 @@ public partial class Turret : Node3D
     private Vector3 _barrelRightRest;
     private Tween? _barrelTween;
 
+    // Red dot  = camera-centre aim ray (where the player is looking)
+    // Yellow dot = turret-barrel aim ray (where the turret is actually pointing)
+    // Both live at scene root so the turret's own rotation doesn't displace them.
     private MeshInstance3D _aimDot = null!;
+    private MeshInstance3D _turretDot = null!;
     private Node3D _muzzleFlash = null!;
 
     private int _currentAmmo;
@@ -52,7 +59,8 @@ public partial class Turret : Node3D
         _config = GetNode<GameConfig>("/root/GameConfig");
         _currentAmmo = _config.AmmoPerClip;
 
-        _camera = GetParent<Camera3D>();
+        // Turret is a sibling of Camera3D inside PlayerCar
+        _camera = GetParent().GetNode<Camera3D>("Camera3D");
         _barrelTip = GetNodeOrNull<Node3D>("BarrelTip") ?? this;
 
         _barrelLeft = GetNode<MeshInstance3D>("BarrelLeft");
@@ -64,6 +72,7 @@ public partial class Turret : Node3D
         _beaconScene = GD.Load<PackedScene>("res://scenes/projectiles/Beacon.tscn");
 
         SetupAimDot();
+        SetupTurretDot();
         SetupMuzzleFlash();
     }
 
@@ -81,7 +90,24 @@ public partial class Turret : Node3D
         };
         sphere.Material = mat;
         _aimDot.Mesh = sphere;
-        AddChild(_aimDot);
+        GetTree().Root.CallDeferred(Node.MethodName.AddChild, _aimDot);
+    }
+
+    private void SetupTurretDot()
+    {
+        _turretDot = new MeshInstance3D();
+        var sphere = new SphereMesh { Radius = 0.06f, Height = 0.12f };
+        var mat = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(1f, 0.85f, 0f),
+            EmissionEnabled = true,
+            Emission = new Color(1f, 0.75f, 0f),
+            EmissionEnergyMultiplier = 4f,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        };
+        sphere.Material = mat;
+        _turretDot.Mesh = sphere;
+        GetTree().Root.CallDeferred(Node.MethodName.AddChild, _turretDot);
     }
 
     private void SetupMuzzleFlash()
@@ -110,7 +136,7 @@ public partial class Turret : Node3D
         };
         _muzzleFlash.AddChild(flashLight);
 
-        _muzzleFlash.Scale = Vector3.Zero; // hidden until fired
+        _muzzleFlash.Scale = Vector3.Zero;
         AddChild(_muzzleFlash);
     }
 
@@ -118,15 +144,34 @@ public partial class Turret : Node3D
     {
         float dt = (float)delta;
 
-        // Update aim point and dot every frame
+        // 1. Camera-centre aim ray → red dot
         _currentAimPoint = GetAimPoint();
-        _aimDot.GlobalPosition = _currentAimPoint;
+        if (_aimDot.IsInsideTree())
+            _aimDot.GlobalPosition = _currentAimPoint;
 
-        // Tick cooldowns
+        // Turret-barrel aim ray → yellow dot (shows where the turret is actually pointing)
+        if (_turretDot.IsInsideTree())
+            _turretDot.GlobalPosition = GetTurretAimPoint();
+
+        // 2. Slerp turret rotation to face the aim point.
+        //    Only interpolate the basis (rotation) — position is managed by PlayerCar.
+        var toTarget = _currentAimPoint - GlobalPosition;
+        if (toTarget.LengthSquared() > 0.25f)
+        {
+            var dir = toTarget.Normalized();
+            // Basis.LookingAt(direction) → -Z axis points along dir
+            var targetBasis = Basis.LookingAt(dir, Vector3.Up);
+            float t = 1f - Mathf.Exp(-_config.TurretTrackingSpeed * dt);
+            GlobalTransform = new Transform3D(
+                GlobalTransform.Basis.Slerp(targetBasis, t),
+                GlobalPosition);
+        }
+
+        // 3. Cooldowns
         if (_fireCooldown > 0f) _fireCooldown -= dt;
         if (_beaconCooldown > 0f) _beaconCooldown -= dt;
 
-        // Reload timer
+        // 4. Reload timer
         if (_isReloading)
         {
             _reloadTimer -= dt;
@@ -137,7 +182,7 @@ public partial class Turret : Node3D
             }
         }
 
-        // Handle in-progress burst
+        // 5. Handle in-progress burst
         if (_burstRemaining > 0 && !_isReloading)
         {
             if (_currentAmmo <= 0)
@@ -158,7 +203,7 @@ public partial class Turret : Node3D
             }
         }
 
-        // Trigger new burst
+        // 6. Trigger new burst
         if (Input.IsActionJustPressed("fire_primary") && !_isReloading
             && _fireCooldown <= 0f && _burstRemaining <= 0)
         {
@@ -168,34 +213,46 @@ public partial class Turret : Node3D
                 StartReload();
         }
 
-        // Manual reload
+        // 7. Manual reload
         if (Input.IsActionJustPressed("reload") && !_isReloading && _currentAmmo < _config.AmmoPerClip)
             StartReload();
 
-        // Beacon fire
+        // 8. Beacon
         if (Input.IsActionJustPressed("fire_beacon") && _beaconCooldown <= 0f)
             FireBeacon();
     }
 
+    // Mask 7 = layer 1 (world/train bodies) + layer 2 (containers) + layer 4 (clamps)
+    private const uint AimRayMask = 7u;
+
     private Vector3 GetAimPoint()
     {
         var from = _camera.GlobalPosition;
-        var forward = -_camera.GlobalTransform.Basis.Z;
-        var to = from + forward * 150f;
+        var to = from + (-_camera.GlobalTransform.Basis.Z) * 150f;
+        return CastAimRay(from, to);
+    }
 
+    private Vector3 GetTurretAimPoint()
+    {
+        var from = _barrelTip.GlobalPosition;
+        var to = from + (-GlobalTransform.Basis.Z) * 150f;
+        return CastAimRay(from, to);
+    }
+
+    private Vector3 CastAimRay(Vector3 from, Vector3 to)
+    {
         var spaceState = _camera.GetWorld3D().DirectSpaceState;
-        var query = PhysicsRayQueryParameters3D.Create(from, to, 6); // containers (2) + clamps (4)
+        var query = PhysicsRayQueryParameters3D.Create(from, to, AimRayMask);
         query.CollideWithAreas = true;
-        query.CollideWithBodies = false;
+        query.CollideWithBodies = true;
         var result = spaceState.IntersectRay(query);
-
         return result.Count > 0 ? result["position"].AsVector3() : to;
     }
 
     private void StartBurst()
     {
         _burstRemaining = Mathf.Min(_config.BurstCount, _currentAmmo);
-        _burstDelayTimer = 0f; // first shot fires immediately on next frame
+        _burstDelayTimer = 0f;
         _fireCooldown = 1f / _config.RateOfFire;
     }
 
@@ -205,9 +262,10 @@ public partial class Turret : Node3D
         GetTree().Root.AddChild(bullet);
         bullet.GlobalPosition = _barrelTip.GlobalPosition;
 
-        var aimDir = (_currentAimPoint - _barrelTip.GlobalPosition).Normalized();
-        if (aimDir.LengthSquared() > 0.01f && Mathf.Abs(aimDir.Dot(Vector3.Up)) < 0.99f)
-            bullet.LookAt(_barrelTip.GlobalPosition + aimDir, Vector3.Up);
+        // Fire along the turret's actual -Z (tracking lag is intentional)
+        var fireDir = -GlobalTransform.Basis.Z;
+        if (Mathf.Abs(fireDir.Dot(Vector3.Up)) < 0.99f)
+            bullet.LookAt(_barrelTip.GlobalPosition + fireDir, Vector3.Up);
         else
             bullet.GlobalRotation = _camera.GlobalRotation;
 
@@ -234,10 +292,8 @@ public partial class Turret : Node3D
     private void TriggerBarrelRetract()
     {
         const float recoilZ = 0.22f;
-        const float snapTime = 0.04f;
         const float returnTime = 0.18f;
 
-        // Snap barrels back to recoil position immediately, then spring forward
         _barrelLeft.Position = _barrelLeftRest + new Vector3(0f, 0f, recoilZ);
         _barrelRight.Position = _barrelRightRest + new Vector3(0f, 0f, recoilZ);
 

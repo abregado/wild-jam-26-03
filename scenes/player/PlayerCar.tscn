@@ -51,4 +51,5 @@ surface_material_override/0 = SubResource("StandardMaterial3D_3")
 transform = Transform3D(1, 0, 0, 0, 0.966, 0.259, 0, -0.259, 0.966, 0, 1.8, 0.6)
 fov = 75.0
 
-[node name="Turret" parent="Camera3D" instance=ExtResource("2")]
+[node name="Turret" parent="." instance=ExtResource("2")]
+position = Vector3(0, 1.8, 0.6)
