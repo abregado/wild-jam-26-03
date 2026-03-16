@@ -27,10 +27,8 @@ public partial class Turret : Node3D
     private Vector3 _barrelRightRest;
     private Tween? _barrelTween;
 
-    // Red dot  = camera-centre aim ray (where the player is looking)
-    // Yellow dot = turret-barrel aim ray (where the turret is actually pointing)
-    // Both live at scene root so the turret's own rotation doesn't displace them.
-    private MeshInstance3D _aimDot = null!;
+    // Yellow dot = turret-barrel aim ray (where the turret is actually pointing).
+    // Lives at scene root so the turret's own rotation doesn't displace it.
     private MeshInstance3D _turretDot = null!;
     private Node3D _muzzleFlash = null!;
 
@@ -46,7 +44,7 @@ public partial class Turret : Node3D
     private PackedScene _bulletScene = null!;
     private PackedScene _beaconScene = null!;
 
-    private Vector3 _currentAimPoint;
+    private Vector3 _turretTargetPoint;
 
     public int CurrentAmmo => _currentAmmo;
     public bool IsReloading => _isReloading;
@@ -71,26 +69,8 @@ public partial class Turret : Node3D
         _bulletScene = GD.Load<PackedScene>("res://scenes/projectiles/Bullet.tscn");
         _beaconScene = GD.Load<PackedScene>("res://scenes/projectiles/Beacon.tscn");
 
-        SetupAimDot();
         SetupTurretDot();
         SetupMuzzleFlash();
-    }
-
-    private void SetupAimDot()
-    {
-        _aimDot = new MeshInstance3D();
-        var sphere = new SphereMesh { Radius = 0.07f, Height = 0.14f };
-        var mat = new StandardMaterial3D
-        {
-            AlbedoColor = Colors.Red,
-            EmissionEnabled = true,
-            Emission = Colors.Red,
-            EmissionEnergyMultiplier = 4f,
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-        };
-        sphere.Material = mat;
-        _aimDot.Mesh = sphere;
-        GetTree().Root.CallDeferred(Node.MethodName.AddChild, _aimDot);
     }
 
     private void SetupTurretDot()
@@ -144,23 +124,18 @@ public partial class Turret : Node3D
     {
         float dt = (float)delta;
 
-        // 1. Camera-centre aim ray → red dot
-        _currentAimPoint = GetAimPoint();
-        if (_aimDot.IsInsideTree())
-            _aimDot.GlobalPosition = _currentAimPoint;
-
-        // Turret-barrel aim ray → yellow dot (shows where the turret is actually pointing)
+        // 1. Yellow dot = where the turret barrel is actually pointing.
+        //    Cast from camera position so it converges to crosshair when tracking catches up.
+        _turretTargetPoint = GetTurretAimPoint();
         if (_turretDot.IsInsideTree())
-            _turretDot.GlobalPosition = GetTurretAimPoint();
+            _turretDot.GlobalPosition = _turretTargetPoint;
 
-        // 2. Slerp turret rotation to face the aim point.
-        //    Only interpolate the basis (rotation) — position is managed by PlayerCar.
-        var toTarget = _currentAimPoint - GlobalPosition;
-        if (toTarget.LengthSquared() > 0.25f)
+        // 2. Slerp turret rotation toward camera's forward direction.
+        //    When fully tracked, turret -Z == camera forward == screen centre == crosshair.
+        var cameraForward = -_camera.GlobalTransform.Basis.Z;
+        if (cameraForward.LengthSquared() > 0.25f)
         {
-            var dir = toTarget.Normalized();
-            // Basis.LookingAt(direction) → -Z axis points along dir
-            var targetBasis = Basis.LookingAt(dir, Vector3.Up);
+            var targetBasis = Basis.LookingAt(cameraForward, Vector3.Up);
             float t = 1f - Mathf.Exp(-_config.TurretTrackingSpeed * dt);
             GlobalTransform = new Transform3D(
                 GlobalTransform.Basis.Slerp(targetBasis, t),
@@ -225,16 +200,10 @@ public partial class Turret : Node3D
     // Mask 7 = layer 1 (world/train bodies) + layer 2 (containers) + layer 4 (clamps)
     private const uint AimRayMask = 7u;
 
-    private Vector3 GetAimPoint()
-    {
-        var from = _camera.GlobalPosition;
-        var to = from + (-_camera.GlobalTransform.Basis.Z) * 150f;
-        return CastAimRay(from, to);
-    }
-
     private Vector3 GetTurretAimPoint()
     {
-        var from = _barrelTip.GlobalPosition;
+        // Cast from camera position so yellow dot lands at screen centre when tracking converges.
+        var from = _camera.GlobalPosition;
         var to = from + (-GlobalTransform.Basis.Z) * 150f;
         return CastAimRay(from, to);
     }
@@ -262,8 +231,8 @@ public partial class Turret : Node3D
         GetTree().Root.AddChild(bullet);
         bullet.GlobalPosition = _barrelTip.GlobalPosition;
 
-        // Fire along the turret's actual -Z (tracking lag is intentional)
-        var fireDir = -GlobalTransform.Basis.Z;
+        // Fire toward the yellow dot target point (where the turret is actually aiming).
+        var fireDir = (_turretTargetPoint - _barrelTip.GlobalPosition).Normalized();
         if (Mathf.Abs(fireDir.Dot(Vector3.Up)) < 0.99f)
             bullet.LookAt(_barrelTip.GlobalPosition + fireDir, Vector3.Up);
         else
