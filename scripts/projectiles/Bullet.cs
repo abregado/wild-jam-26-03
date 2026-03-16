@@ -20,6 +20,7 @@ public partial class Bullet : Node3D
     private float _speed;
     private float _distanceTraveled;
     private bool _hasHit;
+    private CpuParticles3D _trail = null!;
 
     public void Initialize(float damage, float blastRadius, float speed)
     {
@@ -33,8 +34,48 @@ public partial class Bullet : Node3D
         var config = GetNode<GameConfig>("/root/GameConfig");
         Scale = Vector3.One * config.BulletSize;
 
+        SetupTrail();
+
         var area = GetNode<Area3D>("Area3D");
         area.AreaEntered += OnAreaEntered;
+    }
+
+    private void SetupTrail()
+    {
+        var config = GetNode<GameConfig>("/root/GameConfig");
+        float r = config.TrailThickness;
+        var sphere = new SphereMesh { Radius = r, Height = r * 2f };
+        var mat = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(1f, 0.7f, 0.2f),
+            EmissionEnabled = true,
+            Emission = new Color(1f, 0.5f, 0.1f),
+            EmissionEnergyMultiplier = 5f,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            VertexColorUseAsAlbedo = true,
+        };
+        sphere.Material = mat;
+
+        var fade = new Gradient();
+        fade.SetColor(0, new Color(1f, 0.7f, 0.2f, 1f));
+        fade.SetColor(1, new Color(1f, 0.4f, 0.05f, 0f));
+
+        _trail = new CpuParticles3D
+        {
+            Amount = 24,
+            Lifetime = 0.15,
+            OneShot = false,
+            Emitting = true,
+            LocalCoords = false,
+            Direction = Vector3.Zero,
+            Spread = 0f,
+            InitialVelocityMin = 0f,
+            InitialVelocityMax = 0f,
+            Mesh = sphere,
+            ColorRamp = fade,
+        };
+        AddChild(_trail);
     }
 
     public override void _Process(double delta)
@@ -47,7 +88,10 @@ public partial class Bullet : Node3D
         _distanceTraveled += move;
 
         if (_distanceTraveled >= MaxDistance)
+        {
+            DetachTrail();
             QueueFree();
+        }
     }
 
     private void OnAreaEntered(Area3D other)
@@ -73,8 +117,19 @@ public partial class Bullet : Node3D
     private void HitAndDestroy()
     {
         _hasHit = true;
+        DetachTrail();
         SpawnHitEffect();
         QueueFree();
+    }
+
+    private void DetachTrail()
+    {
+        if (_trail == null || !_trail.IsInsideTree()) return;
+        _trail.Emitting = false;
+        _trail.Reparent(GetTree().Root);
+        var t = _trail.CreateTween();
+        t.TweenInterval(_trail.Lifetime);
+        t.TweenCallback(Callable.From(_trail.QueueFree));
     }
 
     private void SpawnHitEffect()

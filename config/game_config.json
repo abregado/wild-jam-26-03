@@ -6,6 +6,7 @@
     "turret_tracking_speed": 6.0,
     "bullet_speed": 120.0,
     "bullet_size": 0.25,
+    "trail_thickness": 0.09,
     "ammo_per_clip": 12,
     "reload_time": 2.0,
     "burst_count": 3,

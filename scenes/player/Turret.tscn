@@ -25,5 +25,8 @@ transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.18, -0.42, -0.5)
 mesh = SubResource("CylinderMesh_1")
 surface_material_override/0 = SubResource("StandardMaterial3D_1")
 
-[node name="BarrelTip" type="Node3D" parent="."]
-position = Vector3(0, -0.42, -0.9)
+[node name="BarrelTipLeft" type="Node3D" parent="."]
+position = Vector3(-0.18, -0.42, -0.9)
+
+[node name="BarrelTipRight" type="Node3D" parent="."]
+position = Vector3(0.18, -0.42, -0.9)

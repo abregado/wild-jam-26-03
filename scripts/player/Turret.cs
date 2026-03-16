@@ -20,12 +20,16 @@ public partial class Turret : Node3D
 {
     private GameConfig _config = null!;
     private Camera3D _camera = null!;
-    private Node3D _barrelTip = null!;
+    private Node3D _barrelTipLeft = null!;
+    private Node3D _barrelTipRight = null!;
     private MeshInstance3D _barrelLeft = null!;
     private MeshInstance3D _barrelRight = null!;
     private Vector3 _barrelLeftRest;
     private Vector3 _barrelRightRest;
     private Tween? _barrelTween;
+    private bool _fireFromLeft = true;
+
+    private Node3D ActiveBarrelTip => _fireFromLeft ? _barrelTipLeft : _barrelTipRight;
 
     // Yellow dot = turret-barrel aim ray (where the turret is actually pointing).
     // Lives at scene root so the turret's own rotation doesn't displace it.
@@ -59,7 +63,8 @@ public partial class Turret : Node3D
 
         // Turret is a sibling of Camera3D inside PlayerCar
         _camera = GetParent().GetNode<Camera3D>("Camera3D");
-        _barrelTip = GetNodeOrNull<Node3D>("BarrelTip") ?? this;
+        _barrelTipLeft = GetNode<Node3D>("BarrelTipLeft");
+        _barrelTipRight = GetNode<Node3D>("BarrelTipRight");
 
         _barrelLeft = GetNode<MeshInstance3D>("BarrelLeft");
         _barrelRight = GetNode<MeshInstance3D>("BarrelRight");
@@ -227,30 +232,33 @@ public partial class Turret : Node3D
 
     private void FireSingleBullet()
     {
+        var tip = ActiveBarrelTip;
+        _fireFromLeft = !_fireFromLeft;
+
         var bullet = (Bullet)_bulletScene.Instantiate();
         GetTree().Root.AddChild(bullet);
-        bullet.GlobalPosition = _barrelTip.GlobalPosition;
+        bullet.GlobalPosition = tip.GlobalPosition;
 
         // Fire toward the yellow dot target point (where the turret is actually aiming).
-        var fireDir = (_turretTargetPoint - _barrelTip.GlobalPosition).Normalized();
+        var fireDir = (_turretTargetPoint - tip.GlobalPosition).Normalized();
         if (Mathf.Abs(fireDir.Dot(Vector3.Up)) < 0.99f)
-            bullet.LookAt(_barrelTip.GlobalPosition + fireDir, Vector3.Up);
+            bullet.LookAt(tip.GlobalPosition + fireDir, Vector3.Up);
         else
             bullet.GlobalRotation = _camera.GlobalRotation;
 
         bullet.Initialize(_config.TurretDamage, _config.BlastRadius, _config.BulletSpeed);
 
         _currentAmmo--;
-        TriggerMuzzleFlash();
+        TriggerMuzzleFlash(tip);
         TriggerBarrelRetract();
 
         if (_currentAmmo <= 0)
             StartReload();
     }
 
-    private void TriggerMuzzleFlash()
+    private void TriggerMuzzleFlash(Node3D tip)
     {
-        _muzzleFlash.GlobalPosition = _barrelTip.GlobalPosition;
+        _muzzleFlash.GlobalPosition = tip.GlobalPosition;
         _muzzleFlash.Scale = Vector3.One;
 
         var tween = CreateTween();
@@ -279,7 +287,7 @@ public partial class Turret : Node3D
     {
         var beacon = (Beacon)_beaconScene.Instantiate();
         GetTree().Root.AddChild(beacon);
-        beacon.GlobalPosition = _barrelTip.GlobalPosition;
+        beacon.GlobalPosition = ActiveBarrelTip.GlobalPosition;
         beacon.GlobalRotation = _camera.GlobalRotation;
         beacon.Initialize(_config.BeaconSpeed);
 
