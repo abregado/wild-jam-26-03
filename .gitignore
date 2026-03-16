@@ -21,3 +21,7 @@ Thumbs.db
 
 # Claude
 .claude/
+/build/WildJam2603.exe
+/build_linux/WildJam2603.x86_64
+/dist/WildJam2603-Linux.zip
+/dist/WildJam2603-Windows.zip
