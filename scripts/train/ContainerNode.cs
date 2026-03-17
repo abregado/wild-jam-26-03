@@ -27,6 +27,7 @@ public partial class ContainerNode : Node3D
     [Signal] public delegate void DamageTakenEventHandler();
 
     public bool IsTagged => _beaconCount > 0;
+    public bool IsLocked { get; private set; }
     public string CargoName { get; private set; } = "Unknown";
     public Color CargoColor { get; private set; } = Colors.Gray;
 
@@ -63,6 +64,17 @@ public partial class ContainerNode : Node3D
     {
         CargoName = cargoType.Name;
         CargoColor = cargoType.Color;
+    }
+
+    /// <summary>
+    /// Marks the container as locked — it cannot be detached, but can still take damage.
+    /// Call after AddChild so _Ready has already run and _material is initialised.
+    /// </summary>
+    public void SetLocked()
+    {
+        IsLocked = true;
+        if (_material != null)
+            _material.AlbedoColor = new Color(0.35f, 0.35f, 0.4f); // dark grey-blue
     }
 
     public void RegisterClamp(ClampNode clamp)
@@ -121,6 +133,7 @@ public partial class ContainerNode : Node3D
 
     private void OnClampDestroyed()
     {
+        if (IsLocked) return;
         _livingClamps--;
         if (_livingClamps <= 0)
             Detach();

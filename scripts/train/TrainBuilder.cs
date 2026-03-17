@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Builds the train at runtime from config values.
@@ -94,8 +95,7 @@ public partial class TrainBuilder : Node3D
             AddChild(carriageInstance);
             _carriages.Add(carriageInstance);
 
-            int numContainers = rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage);
-            AttachContainers(carriageInstance, numContainers, zCenter, rng);
+            AttachContainers(carriageInstance, rng);
 
             int numDeployers = rng.RandiRange(1, _config.MaxDeployersPerCarriage);
             AttachDeployers(carriageInstance, numDeployers, zCenter, rng);
@@ -149,36 +149,62 @@ public partial class TrainBuilder : Node3D
         }
     }
 
-    private void AttachContainers(Carriage carriage, int count, float carriageZCenter, RandomNumberGenerator rng)
+    private void AttachContainers(Carriage carriage, RandomNumberGenerator rng)
     {
+        int slotsPerSide = _config.MaxContainersPerCarriage;
         float spacing = ContainerDepth + 0.3f;
-        float startZ = carriageZCenter - (count - 1) * spacing / 2f;
+        float startZ = -(slotsPerSide - 1) * spacing / 2f;
 
         var gameSession = GetNode<GameSession>("/root/GameSession");
         var trainSpeedManager = GetNode<TrainSpeedManager>("/root/TrainSpeedManager");
 
-        for (int i = 0; i < count; i++)
+        // Build containers on both sides — right (+X) then left (-X)
+        var allContainers = new List<(ContainerNode node, bool isRightSide)>();
+        foreach (int side in new[] { 1, -1 })
         {
-            var containerInstance = (ContainerNode)_containerScene.Instantiate();
-            containerInstance.Name = $"Container_{carriage.Name}_{i}";
+            float xPos = side * ContainerXOffset;
+            for (int i = 0; i < slotsPerSide; i++)
+            {
+                var containerInstance = (ContainerNode)_containerScene.Instantiate();
+                containerInstance.Name = $"Container_{carriage.Name}_{(side > 0 ? "R" : "L")}_{i}";
 
-            float zPos = startZ + i * spacing;
-            containerInstance.Position = new Vector3(ContainerXOffset, 0f, zPos - carriageZCenter);
-            carriage.AddChild(containerInstance);
+                containerInstance.Position = new Vector3(xPos, 0f, startZ + i * spacing);
+                carriage.AddChild(containerInstance);
 
-            // Assign random cargo type
-            int cargoIndex = rng.RandiRange(0, _config.CargoTypes.Count - 1);
-            var cargoType = _config.CargoTypes[cargoIndex];
-            containerInstance.SetCargoType(cargoType);
+                int cargoIndex = rng.RandiRange(0, _config.CargoTypes.Count - 1);
+                containerInstance.SetCargoType(_config.CargoTypes[cargoIndex]);
 
-            // Connect signals
-            containerInstance.CargoDetached += gameSession.OnCargoDetached;
-            containerInstance.CargoDetached += _ => trainSpeedManager.OnContainerDetached();
-            containerInstance.ContainerDestroyed += gameSession.OnContainerDestroyed;
-            containerInstance.ContainerDestroyed += trainSpeedManager.OnContainerDestroyed;
+                containerInstance.CargoDetached += gameSession.OnCargoDetached;
+                containerInstance.CargoDetached += _ => trainSpeedManager.OnContainerDetached();
+                containerInstance.ContainerDestroyed += gameSession.OnContainerDestroyed;
+                containerInstance.ContainerDestroyed += trainSpeedManager.OnContainerDestroyed;
 
-            AttachClamps(containerInstance, rng);
-            AllContainers.Add(containerInstance);
+                allContainers.Add((containerInstance, side > 0));
+                AllContainers.Add(containerInstance);
+            }
+        }
+
+        // Choose which containers get clamps; the rest are locked (damageable but not detachable)
+        int numClamped = Mathf.Min(
+            rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage),
+            allContainers.Count);
+
+        // Fisher-Yates shuffle to pick clamped containers randomly
+        var indices = Enumerable.Range(0, allContainers.Count).ToList();
+        for (int i = indices.Count - 1; i > 0; i--)
+        {
+            int j = rng.RandiRange(0, i);
+            (indices[i], indices[j]) = (indices[j], indices[i]);
+        }
+        var clampedSet = new HashSet<int>(indices.Take(numClamped));
+
+        for (int i = 0; i < allContainers.Count; i++)
+        {
+            var (container, isRightSide) = allContainers[i];
+            if (clampedSet.Contains(i))
+                AttachClamps(container, isRightSide, rng);
+            else
+                container.SetLocked();
         }
     }
 
@@ -198,19 +224,20 @@ public partial class TrainBuilder : Node3D
         }
     }
 
-    private void AttachClamps(ContainerNode container, RandomNumberGenerator rng)
+    private void AttachClamps(ContainerNode container, bool isRightSide, RandomNumberGenerator rng)
     {
         int count = rng.RandiRange(_config.MinClampsPerContainer, _config.MaxClampsPerContainer);
         float spacing = ContainerDepth / (count + 1);
+        // Outward face: +X for right-side containers, -X for left-side
+        float clampX = isRightSide ? ContainerWidth / 2f + 0.15f : -(ContainerWidth / 2f + 0.15f);
 
         for (int i = 0; i < count; i++)
         {
             var clampInstance = (ClampNode)_clampScene.Instantiate();
             clampInstance.Name = $"Clamp_{i}";
 
-            // Distribute clamps along container surface (outward face = +X side)
             float zOffset = -ContainerDepth / 2f + spacing * (i + 1);
-            clampInstance.Position = new Vector3(ContainerWidth / 2f + 0.15f, 0f, zOffset);
+            clampInstance.Position = new Vector3(clampX, 0f, zOffset);
             container.AddChild(clampInstance);
             container.RegisterClamp(clampInstance);
         }
