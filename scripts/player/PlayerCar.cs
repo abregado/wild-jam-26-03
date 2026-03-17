@@ -47,6 +47,7 @@ public partial class PlayerCar : Node3D
 
     private PillarPool? _pillarPool;
     private bool _canSwitchUnder = true;
+    private Shield? _shield;
 
     public float RelativeVelocity => _relativeVelocity;
     public bool CanSwitchUnder => _canSwitchUnder;
@@ -62,8 +63,8 @@ public partial class PlayerCar : Node3D
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
         _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;
 
-        var shield = new Shield();
-        AddChild(shield);
+        _shield = new Shield();
+        AddChild(_shield);
 
         // Toggle capture on focus regain — fixes Godot/Windows bug where motion
         // events stop arriving even though the mouse is still technically captured.
@@ -232,6 +233,8 @@ public partial class PlayerCar : Node3D
         _switchArcDir = direction;
         _arcStartX = _onRightSide ? XOffset : -XOffset;
     }
+
+    public void FlashShieldHit() => _shield?.FlashHit();
 
     public void SetTrainFrontZ(float z) => _trainFrontZ = z;
     public void DisableInput()

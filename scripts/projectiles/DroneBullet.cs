@@ -82,6 +82,9 @@ public partial class DroneBullet : Node3D
                 var tsm = GetNode<TrainSpeedManager>("/root/TrainSpeedManager");
                 var cfg = GetNode<GameConfig>("/root/GameConfig");
                 tsm.ApplyCarSpeedDamage(cfg.CarSpeedDamagePerHit);
+
+                var playerCar = GetTree().Root.FindChild("PlayerCar", true, false) as PlayerCar;
+                playerCar?.FlashShieldHit();
             }
             QueueFree();
             return;

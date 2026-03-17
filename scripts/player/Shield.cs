@@ -96,6 +96,16 @@ public partial class Shield : Node3D
         _shieldMat.EmissionEnergyMultiplier = 3f;
     }
 
+    /// <summary>Called when a drone bullet gets through and hits the car.</summary>
+    public void FlashHit()
+    {
+        _flashTimer = FlashDuration;
+        _shieldMat.AlbedoColor = new Color(1f, 0.1f, 0.05f, 0.5f);
+        _shieldMat.EmissionEnabled = true;
+        _shieldMat.Emission = new Color(1f, 0.05f, 0f);
+        _shieldMat.EmissionEnergyMultiplier = 4f;
+    }
+
     public override void _Process(double delta)
     {
         if (_flashTimer <= 0f) return;
