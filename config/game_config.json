@@ -337,7 +337,103 @@
         { "stat": "beacon_reload_speed",      "flat": -0.4  },
         { "stat": "max_relative_velocity",    "flat": -3.0  }
       ],
-      "cost": { "Credits": 2, "Chemicals": 1 } }
+      "cost": { "Credits": 2, "Chemicals": 1 } },
+
+    { "id": "bandolier",
+      "name": "Bandolier",
+      "description": "+12 ammo per clip.",
+      "modifiers": [ { "stat": "ammo_per_clip", "flat": 12 } ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "compact_rounds",
+      "name": "Compact Rounds",
+      "description": "+6 ammo per clip.",
+      "modifiers": [ { "stat": "ammo_per_clip", "flat": 6 } ],
+      "cost": { "Credits": 1 } },
+
+    { "id": "practiced_hands",
+      "name": "Practiced Hands",
+      "description": "Reload 0.5s faster.",
+      "modifiers": [ { "stat": "reload_time", "flat": -0.5 } ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "slick_loader",
+      "name": "Slick Loader",
+      "description": "Reload 15% faster.",
+      "modifiers": [ { "stat": "reload_time", "multiplier": 0.85 } ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "speedrun_mags",
+      "name": "Speedrun Mags",
+      "description": "+10 ammo but reload 10% slower.",
+      "modifiers": [
+        { "stat": "ammo_per_clip", "flat": 10    },
+        { "stat": "reload_time",   "multiplier": 1.1 }
+      ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "hair_trigger_reload",
+      "name": "Hair-Trigger Reload",
+      "description": "Reload 0.3s faster but −3 ammo per clip.",
+      "modifiers": [
+        { "stat": "reload_time",   "flat": -0.3 },
+        { "stat": "ammo_per_clip", "flat": -3   }
+      ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "sustained_fire",
+      "name": "Sustained Fire",
+      "description": "+10 ammo, reload 0.4s faster.",
+      "modifiers": [
+        { "stat": "ammo_per_clip", "flat": 10   },
+        { "stat": "reload_time",   "flat": -0.4 }
+      ],
+      "cost": { "Electronics": 1, "Chemicals": 1 } },
+
+    { "id": "drum_magazine",
+      "name": "Drum Magazine",
+      "description": "+20 ammo, reload 10% faster.",
+      "modifiers": [
+        { "stat": "ammo_per_clip", "flat": 20             },
+        { "stat": "reload_time",   "multiplier": 0.9      }
+      ],
+      "cost": { "Electronics": 2 } },
+
+    { "id": "assault_config",
+      "name": "Assault Config",
+      "description": "+15 ammo, reload 15% faster.",
+      "modifiers": [
+        { "stat": "ammo_per_clip", "flat": 15             },
+        { "stat": "reload_time",   "multiplier": 0.85     }
+      ],
+      "cost": { "Electronics": 2, "Chemicals": 1 } },
+
+    { "id": "autoloader",
+      "name": "Autoloader",
+      "description": "Reload 30% faster but −8 ammo per clip.",
+      "modifiers": [
+        { "stat": "reload_time",   "multiplier": 0.7 },
+        { "stat": "ammo_per_clip", "flat": -8        }
+      ],
+      "cost": { "Chemicals": 2 } },
+
+    { "id": "overloaded_clip",
+      "name": "Overloaded Clip",
+      "description": "+30 ammo but reload 15% slower.",
+      "modifiers": [
+        { "stat": "ammo_per_clip", "flat": 30             },
+        { "stat": "reload_time",   "multiplier": 1.15     }
+      ],
+      "cost": { "Electronics": 2, "Weapons": 1 } },
+
+    { "id": "logistics_master",
+      "name": "Logistics Master",
+      "description": "+25 ammo, reload 20% faster.",
+      "modifiers": [
+        { "stat": "ammo_per_clip", "flat": 25         },
+        { "stat": "reload_time",   "multiplier": 0.8  }
+      ],
+      "cost": { "Electronics": 2, "Chemicals": 2 } }
 
   ]
 }

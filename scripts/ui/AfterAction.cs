@@ -572,15 +572,37 @@ public partial class AfterAction : Control
 
 public partial class UpgradeCard : PanelContainer
 {
+    // Per-stat metadata: (human-readable name, whether a positive delta is beneficial).
+    // If positive is BAD (e.g. reload_time — longer is worse) set false.
+    private static readonly Dictionary<string, (string Label, bool PosIsGood)> StatMeta = new()
+    {
+        ["turret_tracking_speed"]    = ("Tracking Speed",   true),
+        ["turret_damage"]            = ("Damage",           true),
+        ["ammo_per_clip"]            = ("Ammo / Clip",      true),
+        ["reload_time"]              = ("Reload Time",      false),   // lower = faster
+        ["burst_count"]              = ("Burst Count",      true),
+        ["burst_delay"]              = ("Burst Delay",      false),   // lower = faster
+        ["rate_of_fire"]             = ("Rate of Fire",     true),
+        ["bullet_speed"]             = ("Bullet Speed",     true),
+        ["beacon_reload_speed"]      = ("Beacon Reload",    false),   // lower = faster
+        ["max_relative_velocity"]    = ("Max Speed",        true),
+        ["blast_radius"]             = ("Blast Radius",     true),
+        ["shield_block_angle"]       = ("Shield Angle",     true),
+        ["car_speed_damage_per_hit"] = ("Speed Dmg / Hit",  false),   // lower = less damage taken
+    };
+
+    private static readonly Color ColGood = new Color(0.3f, 1f, 0.45f);
+    private static readonly Color ColBad  = new Color(1f, 0.35f, 0.35f);
+
     private readonly UpgradeDefinition? _def;
     private readonly AfterAction        _owner;
-    private Label  _nameLabel   = null!;
-    private Label  _descLabel   = null!;
-    private Label  _costLabel   = null!;
-    private Label  _statusLabel = null!;
-    private Button _buyButton   = null!;
-    private bool   _purchased   = false;
-    private bool   _revealed    = false;
+    private Label         _nameLabel   = null!;
+    private VBoxContainer _modList     = null!;
+    private Label         _costLabel   = null!;
+    private Label         _statusLabel = null!;
+    private Button        _buyButton   = null!;
+    private bool          _purchased   = false;
+    private bool          _revealed    = false;
 
     public UpgradeCard(UpgradeDefinition? def, AfterAction owner)
     {
@@ -598,18 +620,19 @@ public partial class UpgradeCard : PanelContainer
             Text = "???",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        _nameLabel.AddThemeFontSizeOverride("font_size", 16);
+        _nameLabel.AddThemeFontSizeOverride("font_size", 15);
         vbox.AddChild(_nameLabel);
 
         vbox.AddChild(new HSeparator());
 
-        _descLabel = new Label
+        _modList = new VBoxContainer
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.Word,
+            SizeFlagsVertical   = Control.SizeFlags.ExpandFill,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
-        vbox.AddChild(_descLabel);
+        vbox.AddChild(_modList);
+
+        vbox.AddChild(new HSeparator());
 
         _costLabel = new Label
         {
@@ -645,10 +668,60 @@ public partial class UpgradeCard : PanelContainer
             _nameLabel.Modulate = Colors.DimGray;
             return;
         }
-        _nameLabel.Text  = _def.Name;
-        _descLabel.Text  = _def.Description;
-        _costLabel.Text  = "Cost: " + string.Join(", ", _def.Cost.Select(kv => $"{kv.Value} {kv.Key}"));
+
+        _nameLabel.Text = _def.Name;
+
+        foreach (Node c in _modList.GetChildren()) c.QueueFree();
+        foreach (var m in _def.Modifiers)
+        {
+            bool found = StatMeta.TryGetValue(m.Stat, out var meta);
+            string statLabel = found ? meta.Label : m.Stat;
+            bool   posIsGood = found ? meta.PosIsGood : true;
+
+            if (m.Flat != 0f)
+            {
+                bool   good = (m.Flat > 0f) == posIsGood;
+                string val  = m.Flat > 0f
+                    ? $"+{m.Flat:0.###}"
+                    : $"\u2212{Mathf.Abs(m.Flat):0.###}";   // − (minus sign)
+                AddModRow(statLabel, val, good);
+            }
+
+            if (m.Multiplier != 1f)
+            {
+                bool   good = (m.Multiplier > 1f) == posIsGood;
+                string val  = $"\u00d7{m.Multiplier:0.###}";  // ×
+                AddModRow(statLabel, val, good);
+            }
+        }
+
+        _costLabel.Text = "Cost: " + string.Join("  ", _def.Cost.Select(kv => $"{kv.Value}\u00d7 {kv.Key}"));
         RefreshAffordability();
+    }
+
+    private void AddModRow(string statName, string value, bool good)
+    {
+        var row = new HBoxContainer();
+
+        var nameLbl = new Label
+        {
+            Text = statName,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        nameLbl.AddThemeFontSizeOverride("font_size", 12);
+
+        var valLbl = new Label
+        {
+            Text = value,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Modulate = good ? ColGood : ColBad,
+        };
+        valLbl.AddThemeFontSizeOverride("font_size", 12);
+
+        row.AddChild(nameLbl);
+        row.AddChild(valLbl);
+        _modList.AddChild(row);
     }
 
     public void RefreshAffordability()

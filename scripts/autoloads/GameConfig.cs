@@ -276,7 +276,7 @@ public partial class GameConfig : Node
             case "turret_damage":            TurretDamage          += v; break;
             case "ammo_per_clip":            AmmoPerClip           += (int)v; break;
             case "reload_time":              ReloadTime            += v; break;
-            case "burst_count":              BurstCount            += (int)v; break;
+            case "burst_count":              BurstCount             = Mathf.Max(1, BurstCount + (int)v); break;
             case "burst_delay":              BurstDelay            += v; break;
             case "rate_of_fire":             RateOfFire            += v; break;
             case "bullet_speed":             BulletSpeed           += v; break;
@@ -296,7 +296,7 @@ public partial class GameConfig : Node
             case "turret_damage":            TurretDamage          *= m; break;
             case "ammo_per_clip":            AmmoPerClip            = (int)(AmmoPerClip * m); break;
             case "reload_time":              ReloadTime            *= m; break;
-            case "burst_count":              BurstCount             = (int)(BurstCount * m); break;
+            case "burst_count":              BurstCount             = Mathf.Max(1, (int)(BurstCount * m)); break;
             case "burst_delay":              BurstDelay            *= m; break;
             case "rate_of_fire":             RateOfFire            *= m; break;
             case "bullet_speed":             BulletSpeed           *= m; break;
