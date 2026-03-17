@@ -22,7 +22,7 @@ using System.Collections.Generic;
 /// </summary>
 public partial class ContainerNode : Node3D
 {
-    [Signal] public delegate void CargoDetachedEventHandler(string cargoName);
+    [Signal] public delegate void CargoDetachedEventHandler(string cargoName, bool wasBeaconed);
     [Signal] public delegate void ContainerDestroyedEventHandler();
     [Signal] public delegate void DamageTakenEventHandler();
 
@@ -159,7 +159,7 @@ public partial class ContainerNode : Node3D
         bool recovered = GD.Randf() < chance;
 
         if (recovered)
-            EmitSignal(SignalName.CargoDetached, CargoName);
+            EmitSignal(SignalName.CargoDetached, CargoName, IsTagged);
         else
             EmitSignal(SignalName.ContainerDestroyed);
 

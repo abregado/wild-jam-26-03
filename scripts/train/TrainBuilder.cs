@@ -175,7 +175,7 @@ public partial class TrainBuilder : Node3D
                 containerInstance.SetCargoType(_config.CargoTypes[cargoIndex]);
 
                 containerInstance.CargoDetached += gameSession.OnCargoDetached;
-                containerInstance.CargoDetached += _ => trainSpeedManager.OnContainerDetached();
+                containerInstance.CargoDetached += (_, _) => trainSpeedManager.OnContainerDetached();
                 containerInstance.ContainerDestroyed += gameSession.OnContainerDestroyed;
                 containerInstance.ContainerDestroyed += trainSpeedManager.OnContainerDestroyed;
 

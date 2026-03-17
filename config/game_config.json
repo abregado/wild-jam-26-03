@@ -71,5 +71,15 @@
     { "name": "Chemicals", "color": "#44FF88" },
     { "name": "Weapons", "color": "#FF4444" },
     { "name": "Credits", "color": "#FFCC00" }
+  ],
+  "upgrades": [
+    { "id": "targeting_servos", "name": "Targeting Servos",  "description": "Turret tracks faster",      "stat": "turret_tracking_speed",   "amount": 2.0,  "cost": { "Electronics": 2 } },
+    { "id": "high_calibre",     "name": "High Calibre",      "description": "+10 damage per shot",       "stat": "turret_damage",           "amount": 10.0, "cost": { "Weapons": 3 } },
+    { "id": "deep_mag",         "name": "Deep Magazine",     "description": "+15 ammo per clip",         "stat": "ammo_per_clip",           "amount": 15.0, "cost": { "Electronics": 1, "Credits": 1 } },
+    { "id": "fast_reload",      "name": "Speed Loader",      "description": "Reload 1s faster",          "stat": "reload_time",             "amount": -1.0, "cost": { "Chemicals": 2 } },
+    { "id": "rapid_burst",      "name": "Rapid Burst",       "description": "+1 bullet per burst",       "stat": "burst_count",             "amount": 1.0,  "cost": { "Weapons": 2, "Electronics": 1 } },
+    { "id": "beacon_rush",      "name": "Beacon Rush",       "description": "Beacon reloads 50% faster", "stat": "beacon_reload_speed",     "amount": -0.5, "cost": { "Credits": 2 } },
+    { "id": "speed_boost",      "name": "Nitro Injector",    "description": "+5 max forward speed",      "stat": "max_relative_velocity",   "amount": 5.0,  "cost": { "Chemicals": 3 } },
+    { "id": "blast_radius",     "name": "Shaped Charge",     "description": "+0.5 blast radius",         "stat": "blast_radius",            "amount": 0.5,  "cost": { "Chemicals": 1, "Weapons": 1 } }
   ]
 }

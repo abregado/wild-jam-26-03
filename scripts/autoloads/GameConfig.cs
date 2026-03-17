@@ -75,6 +75,9 @@ public partial class GameConfig : Node
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
 
+    // Upgrades
+    public List<UpgradeDefinition> Upgrades { get; private set; } = new();
+
     public override void _Ready()
     {
         LoadConfig();
@@ -215,6 +218,45 @@ public partial class GameConfig : Node
 
         if (CargoTypes.Count == 0)
             SetupDefaultCargo();
+
+        if (data.TryGetValue("upgrades", out var upgradesVar))
+        {
+            Upgrades.Clear();
+            var arr = upgradesVar.AsGodotArray();
+            foreach (var item in arr)
+            {
+                var d = item.AsGodotDictionary();
+                var upgrade = new UpgradeDefinition
+                {
+                    Id          = d.TryGetValue("id",          out var idV)   ? idV.AsString()   : "",
+                    Name        = d.TryGetValue("name",        out var nameV) ? nameV.AsString() : "",
+                    Description = d.TryGetValue("description", out var descV) ? descV.AsString() : "",
+                    Stat        = d.TryGetValue("stat",        out var statV) ? statV.AsString() : "",
+                    Amount      = d.TryGetValue("amount",      out var amtV)  ? (float)amtV.AsDouble() : 0f,
+                };
+                if (d.TryGetValue("cost", out var costV))
+                {
+                    foreach (var kv in costV.AsGodotDictionary())
+                        upgrade.Cost[kv.Key.AsString()] = kv.Value.AsInt32();
+                }
+                Upgrades.Add(upgrade);
+            }
+        }
+    }
+
+    public void ApplyUpgrade(UpgradeDefinition u)
+    {
+        switch (u.Stat)
+        {
+            case "turret_tracking_speed": TurretTrackingSpeed  += u.Amount; break;
+            case "turret_damage":         TurretDamage         += u.Amount; break;
+            case "ammo_per_clip":         AmmoPerClip          += (int)u.Amount; break;
+            case "reload_time":           ReloadTime           += u.Amount; break;
+            case "burst_count":           BurstCount           += (int)u.Amount; break;
+            case "beacon_reload_speed":   BeaconReloadSpeed    += u.Amount; break;
+            case "max_relative_velocity": MaxRelativeVelocity  += u.Amount; break;
+            case "blast_radius":          BlastRadius          += u.Amount; break;
+        }
     }
 
     private void SetupDefaultCargo()
@@ -242,4 +284,14 @@ public class CargoType
 {
     public string Name { get; set; } = "";
     public Color Color { get; set; } = Colors.Gray;
+}
+
+public class UpgradeDefinition
+{
+    public string Id          { get; set; } = "";
+    public string Name        { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Stat        { get; set; } = "";
+    public float  Amount      { get; set; }
+    public Dictionary<string, int> Cost { get; set; } = new();
 }
