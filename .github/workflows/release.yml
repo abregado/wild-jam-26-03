@@ -70,11 +70,17 @@ jobs:
           mkdir -p build_linux
           godot --headless --export-release "Linux" build_linux/WildJam2603.x86_64
 
+      - name: Export macOS
+        run: |
+          mkdir -p build_mac
+          godot --headless --export-release "macOS" build_mac/WildJam2603.zip
+
       - name: Package
         run: |
           mkdir -p dist
           (cd build       && zip -r ../dist/WildJam2603-Windows.zip .)
           (cd build_linux && zip -r ../dist/WildJam2603-Linux.zip   .)
+          cp build_mac/WildJam2603.zip dist/WildJam2603-Mac.zip
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -82,4 +88,5 @@ jobs:
           files: |
             dist/WildJam2603-Windows.zip
             dist/WildJam2603-Linux.zip
+            dist/WildJam2603-Mac.zip
           generate_release_notes: true
