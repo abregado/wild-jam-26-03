@@ -73,13 +73,271 @@
     { "name": "Credits", "color": "#FFCC00" }
   ],
   "upgrades": [
-    { "id": "targeting_servos", "name": "Targeting Servos",  "description": "Turret tracks faster",      "stat": "turret_tracking_speed",   "amount": 2.0,  "cost": { "Electronics": 2 } },
-    { "id": "high_calibre",     "name": "High Calibre",      "description": "+10 damage per shot",       "stat": "turret_damage",           "amount": 10.0, "cost": { "Weapons": 3 } },
-    { "id": "deep_mag",         "name": "Deep Magazine",     "description": "+15 ammo per clip",         "stat": "ammo_per_clip",           "amount": 15.0, "cost": { "Electronics": 1, "Credits": 1 } },
-    { "id": "fast_reload",      "name": "Speed Loader",      "description": "Reload 1s faster",          "stat": "reload_time",             "amount": -1.0, "cost": { "Chemicals": 2 } },
-    { "id": "rapid_burst",      "name": "Rapid Burst",       "description": "+1 bullet per burst",       "stat": "burst_count",             "amount": 1.0,  "cost": { "Weapons": 2, "Electronics": 1 } },
-    { "id": "beacon_rush",      "name": "Beacon Rush",       "description": "Beacon reloads 50% faster", "stat": "beacon_reload_speed",     "amount": -0.5, "cost": { "Credits": 2 } },
-    { "id": "speed_boost",      "name": "Nitro Injector",    "description": "+5 max forward speed",      "stat": "max_relative_velocity",   "amount": 5.0,  "cost": { "Chemicals": 3 } },
-    { "id": "blast_radius",     "name": "Shaped Charge",     "description": "+0.5 blast radius",         "stat": "blast_radius",            "amount": 0.5,  "cost": { "Chemicals": 1, "Weapons": 1 } }
+
+    { "id": "servo_tune",
+      "name": "Servo Tune",
+      "description": "Turret tracks +1.5 faster.",
+      "modifiers": [ { "stat": "turret_tracking_speed", "flat": 1.5 } ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "hollow_point",
+      "name": "Hollow Point",
+      "description": "+6 damage per shot.",
+      "modifiers": [ { "stat": "turret_damage", "flat": 6.0 } ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "extended_clip",
+      "name": "Extended Clip",
+      "description": "+8 ammo per clip.",
+      "modifiers": [ { "stat": "ammo_per_clip", "flat": 8 } ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "quick_loader",
+      "name": "Quick Loader",
+      "description": "Reload 0.5s faster.",
+      "modifiers": [ { "stat": "reload_time", "flat": -0.5 } ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "fragmentation",
+      "name": "Fragmentation",
+      "description": "+0.4 blast radius.",
+      "modifiers": [ { "stat": "blast_radius", "flat": 0.4 } ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "wide_arc",
+      "name": "Wide Arc",
+      "description": "+15° shield block angle.",
+      "modifiers": [ { "stat": "shield_block_angle", "flat": 15.0 } ],
+      "cost": { "Credits": 1 } },
+
+    { "id": "dampeners",
+      "name": "Shock Dampeners",
+      "description": "Drone hits slow you 20% less.",
+      "modifiers": [ { "stat": "car_speed_damage_per_hit", "flat": -0.06 } ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "beacon_boost",
+      "name": "Beacon Boost",
+      "description": "Beacon reloads 0.3s faster.",
+      "modifiers": [ { "stat": "beacon_reload_speed", "flat": -0.3 } ],
+      "cost": { "Credits": 1 } },
+
+    { "id": "fuel_inject",
+      "name": "Fuel Injector",
+      "description": "+2 max forward speed.",
+      "modifiers": [ { "stat": "max_relative_velocity", "flat": 2.0 } ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "hair_trigger",
+      "name": "Hair Trigger",
+      "description": "+0.5 rate of fire.",
+      "modifiers": [ { "stat": "rate_of_fire", "flat": 0.5 } ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "velocity_round",
+      "name": "Velocity Round",
+      "description": "+15 bullet speed.",
+      "modifiers": [ { "stat": "bullet_speed", "flat": 15.0 } ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "extra_burst",
+      "name": "Extra Burst",
+      "description": "+1 bullet per burst.",
+      "modifiers": [ { "stat": "burst_count", "flat": 1 } ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "overcharge",
+      "name": "Overcharge",
+      "description": "+12 damage but −5 ammo per clip.",
+      "modifiers": [
+        { "stat": "turret_damage",  "flat":  12.0 },
+        { "stat": "ammo_per_clip",  "flat":  -5   }
+      ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "sniper_config",
+      "name": "Sniper Config",
+      "description": "+40 bullet speed but one fewer burst shot.",
+      "modifiers": [
+        { "stat": "bullet_speed",  "flat": 40.0 },
+        { "stat": "burst_count",   "flat": -1   }
+      ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "spray_pattern",
+      "name": "Spray Pattern",
+      "description": "+2 burst shots but reload takes 1s longer.",
+      "modifiers": [
+        { "stat": "burst_count",  "flat":  2   },
+        { "stat": "reload_time",  "flat":  1.0 }
+      ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "heavy_slugs",
+      "name": "Heavy Slugs",
+      "description": "×1.25 damage but rounds fly 15% slower.",
+      "modifiers": [
+        { "stat": "turret_damage",  "multiplier": 1.25 },
+        { "stat": "bullet_speed",   "multiplier": 0.85 }
+      ],
+      "cost": { "Weapons": 1 } },
+
+    { "id": "rapid_fire",
+      "name": "Rapid Fire",
+      "description": "Fire 30% faster but reload takes 0.5s longer.",
+      "modifiers": [
+        { "stat": "rate_of_fire",  "multiplier": 1.3 },
+        { "stat": "reload_time",   "flat": 0.5       }
+      ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "blast_shield",
+      "name": "Blast Shield",
+      "description": "+25° shield angle but −2 max speed.",
+      "modifiers": [
+        { "stat": "shield_block_angle",    "flat":  25.0 },
+        { "stat": "max_relative_velocity", "flat":  -2.0 }
+      ],
+      "cost": { "Credits": 1 } },
+
+    { "id": "aggressive_drive",
+      "name": "Aggressive Drive",
+      "description": "+3 speed but drone hits hurt 25% more.",
+      "modifiers": [
+        { "stat": "max_relative_velocity",    "flat":  3.0  },
+        { "stat": "car_speed_damage_per_hit", "flat":  0.08 }
+      ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "tight_burst",
+      "name": "Tight Burst",
+      "description": "Burst fires 37% faster but −6 ammo per clip.",
+      "modifiers": [
+        { "stat": "burst_delay",   "flat": -0.015 },
+        { "stat": "ammo_per_clip", "flat": -6     }
+      ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "combat_package",
+      "name": "Combat Package",
+      "description": "+8 damage, +10 ammo, reload 0.5s faster.",
+      "modifiers": [
+        { "stat": "turret_damage",  "flat":  8.0  },
+        { "stat": "ammo_per_clip",  "flat":  10   },
+        { "stat": "reload_time",    "flat": -0.5  }
+      ],
+      "cost": { "Weapons": 2, "Electronics": 1 } },
+
+    { "id": "tactical_suite",
+      "name": "Tactical Suite",
+      "description": "+2 tracking, +20° shield, +1 burst shot.",
+      "modifiers": [
+        { "stat": "turret_tracking_speed", "flat": 2.0  },
+        { "stat": "shield_block_angle",    "flat": 20.0 },
+        { "stat": "burst_count",           "flat":  1   }
+      ],
+      "cost": { "Electronics": 2, "Credits": 1 } },
+
+    { "id": "overdrive",
+      "name": "Overdrive",
+      "description": "×1.2 damage, ×1.15 bullet speed — reload 1s slower.",
+      "modifiers": [
+        { "stat": "turret_damage",  "multiplier": 1.2  },
+        { "stat": "bullet_speed",   "multiplier": 1.15 },
+        { "stat": "reload_time",    "flat": 1.0        }
+      ],
+      "cost": { "Weapons": 2, "Chemicals": 1 } },
+
+    { "id": "defensive_rig",
+      "name": "Defensive Rig",
+      "description": "+20° shield, drone hits hurt 33% less, +3 speed.",
+      "modifiers": [
+        { "stat": "shield_block_angle",       "flat":  20.0 },
+        { "stat": "car_speed_damage_per_hit", "flat":  -0.1 },
+        { "stat": "max_relative_velocity",    "flat":   3.0 }
+      ],
+      "cost": { "Credits": 1, "Chemicals": 1, "Electronics": 1 } },
+
+    { "id": "hunter_killer",
+      "name": "Hunter-Killer",
+      "description": "+12 damage, +1 burst — blast radius −0.4 (precision rounds).",
+      "modifiers": [
+        { "stat": "turret_damage",  "flat":  12.0 },
+        { "stat": "burst_count",    "flat":   1   },
+        { "stat": "blast_radius",   "flat":  -0.4 }
+      ],
+      "cost": { "Weapons": 2, "Electronics": 1 } },
+
+    { "id": "full_auto",
+      "name": "Full Auto",
+      "description": "+4 burst shots, 25% tighter timing — but −8 ammo per clip.",
+      "modifiers": [
+        { "stat": "burst_count",   "flat":  4      },
+        { "stat": "burst_delay",   "flat": -0.01   },
+        { "stat": "ammo_per_clip", "flat": -8      }
+      ],
+      "cost": { "Weapons": 2 } },
+
+    { "id": "beacon_array",
+      "name": "Beacon Array",
+      "description": "Beacon 0.5s faster, +0.5 blast radius, +10° shield.",
+      "modifiers": [
+        { "stat": "beacon_reload_speed", "flat": -0.5  },
+        { "stat": "blast_radius",        "flat":  0.5  },
+        { "stat": "shield_block_angle",  "flat":  10.0 }
+      ],
+      "cost": { "Credits": 2, "Electronics": 1 } },
+
+    { "id": "field_overhaul",
+      "name": "Field Overhaul",
+      "description": "×1.15 damage, ×0.9 reload speed, +10 ammo.",
+      "modifiers": [
+        { "stat": "turret_damage",  "multiplier": 1.15 },
+        { "stat": "reload_time",    "multiplier": 0.9  },
+        { "stat": "ammo_per_clip",  "flat": 10         }
+      ],
+      "cost": { "Electronics": 2, "Chemicals": 1 } },
+
+    { "id": "speed_demon",
+      "name": "Speed Demon",
+      "description": "×1.2 max speed, drone-hit slow ×0.9, +1 rate of fire.",
+      "modifiers": [
+        { "stat": "max_relative_velocity",    "multiplier": 1.2 },
+        { "stat": "car_speed_damage_per_hit", "multiplier": 0.9 },
+        { "stat": "rate_of_fire",             "flat": 1.0       }
+      ],
+      "cost": { "Chemicals": 2, "Weapons": 1 } },
+
+    { "id": "marksman_kit",
+      "name": "Marksman Kit",
+      "description": "×1.2 bullet speed, ×1.1 tracking, tighter burst timing.",
+      "modifiers": [
+        { "stat": "bullet_speed",          "multiplier": 1.2  },
+        { "stat": "turret_tracking_speed", "multiplier": 1.1  },
+        { "stat": "burst_delay",           "flat": -0.015     }
+      ],
+      "cost": { "Electronics": 2, "Weapons": 1 } },
+
+    { "id": "warlord_loadout",
+      "name": "Warlord Loadout",
+      "description": "×1.3 damage, +2 burst, ×1.2 reload time — high risk.",
+      "modifiers": [
+        { "stat": "turret_damage", "multiplier": 1.3 },
+        { "stat": "burst_count",   "flat": 2         },
+        { "stat": "reload_time",   "multiplier": 1.2 }
+      ],
+      "cost": { "Weapons": 3 } },
+
+    { "id": "ghost_protocol",
+      "name": "Ghost Protocol",
+      "description": "+30° shield, ×0.85 drone-hit slow, beacon 0.4s faster, −3 max speed.",
+      "modifiers": [
+        { "stat": "shield_block_angle",       "flat":  30.0 },
+        { "stat": "car_speed_damage_per_hit", "multiplier": 0.85 },
+        { "stat": "beacon_reload_speed",      "flat": -0.4  },
+        { "stat": "max_relative_velocity",    "flat": -3.0  }
+      ],
+      "cost": { "Credits": 2, "Chemicals": 1 } }
+
   ]
 }

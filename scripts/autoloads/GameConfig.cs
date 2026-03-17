@@ -231,9 +231,20 @@ public partial class GameConfig : Node
                     Id          = d.TryGetValue("id",          out var idV)   ? idV.AsString()   : "",
                     Name        = d.TryGetValue("name",        out var nameV) ? nameV.AsString() : "",
                     Description = d.TryGetValue("description", out var descV) ? descV.AsString() : "",
-                    Stat        = d.TryGetValue("stat",        out var statV) ? statV.AsString() : "",
-                    Amount      = d.TryGetValue("amount",      out var amtV)  ? (float)amtV.AsDouble() : 0f,
                 };
+                if (d.TryGetValue("modifiers", out var modsV))
+                {
+                    foreach (var modItem in modsV.AsGodotArray())
+                    {
+                        var md = modItem.AsGodotDictionary();
+                        upgrade.Modifiers.Add(new StatModifier
+                        {
+                            Stat       = md.TryGetValue("stat",       out var sv) ? sv.AsString()         : "",
+                            Flat       = md.TryGetValue("flat",       out var fv) ? (float)fv.AsDouble()  : 0f,
+                            Multiplier = md.TryGetValue("multiplier", out var mv) ? (float)mv.AsDouble()  : 1f,
+                        });
+                    }
+                }
                 if (d.TryGetValue("cost", out var costV))
                 {
                     foreach (var kv in costV.AsGodotDictionary())
@@ -244,18 +255,56 @@ public partial class GameConfig : Node
         }
     }
 
+    /// <summary>
+    /// Applies an upgrade's modifiers to the live config values.
+    /// All flat deltas are added first, then all multipliers are applied.
+    /// </summary>
     public void ApplyUpgrade(UpgradeDefinition u)
     {
-        switch (u.Stat)
+        foreach (var m in u.Modifiers)
+            if (m.Flat != 0f) ApplyFlat(m.Stat, m.Flat);
+
+        foreach (var m in u.Modifiers)
+            if (m.Multiplier != 1f) ApplyMult(m.Stat, m.Multiplier);
+    }
+
+    private void ApplyFlat(string stat, float v)
+    {
+        switch (stat)
         {
-            case "turret_tracking_speed": TurretTrackingSpeed  += u.Amount; break;
-            case "turret_damage":         TurretDamage         += u.Amount; break;
-            case "ammo_per_clip":         AmmoPerClip          += (int)u.Amount; break;
-            case "reload_time":           ReloadTime           += u.Amount; break;
-            case "burst_count":           BurstCount           += (int)u.Amount; break;
-            case "beacon_reload_speed":   BeaconReloadSpeed    += u.Amount; break;
-            case "max_relative_velocity": MaxRelativeVelocity  += u.Amount; break;
-            case "blast_radius":          BlastRadius          += u.Amount; break;
+            case "turret_tracking_speed":    TurretTrackingSpeed   += v; break;
+            case "turret_damage":            TurretDamage          += v; break;
+            case "ammo_per_clip":            AmmoPerClip           += (int)v; break;
+            case "reload_time":              ReloadTime            += v; break;
+            case "burst_count":              BurstCount            += (int)v; break;
+            case "burst_delay":              BurstDelay            += v; break;
+            case "rate_of_fire":             RateOfFire            += v; break;
+            case "bullet_speed":             BulletSpeed           += v; break;
+            case "beacon_reload_speed":      BeaconReloadSpeed     += v; break;
+            case "max_relative_velocity":    MaxRelativeVelocity   += v; break;
+            case "blast_radius":             BlastRadius           += v; break;
+            case "shield_block_angle":       ShieldBlockAngle      += v; break;
+            case "car_speed_damage_per_hit": CarSpeedDamagePerHit  += v; break;
+        }
+    }
+
+    private void ApplyMult(string stat, float m)
+    {
+        switch (stat)
+        {
+            case "turret_tracking_speed":    TurretTrackingSpeed   *= m; break;
+            case "turret_damage":            TurretDamage          *= m; break;
+            case "ammo_per_clip":            AmmoPerClip            = (int)(AmmoPerClip * m); break;
+            case "reload_time":              ReloadTime            *= m; break;
+            case "burst_count":              BurstCount             = (int)(BurstCount * m); break;
+            case "burst_delay":              BurstDelay            *= m; break;
+            case "rate_of_fire":             RateOfFire            *= m; break;
+            case "bullet_speed":             BulletSpeed           *= m; break;
+            case "beacon_reload_speed":      BeaconReloadSpeed     *= m; break;
+            case "max_relative_velocity":    MaxRelativeVelocity   *= m; break;
+            case "blast_radius":             BlastRadius           *= m; break;
+            case "shield_block_angle":       ShieldBlockAngle      *= m; break;
+            case "car_speed_damage_per_hit": CarSpeedDamagePerHit  *= m; break;
         }
     }
 
@@ -286,12 +335,18 @@ public class CargoType
     public Color Color { get; set; } = Colors.Gray;
 }
 
+public class StatModifier
+{
+    public string Stat       { get; set; } = "";
+    public float  Flat       { get; set; } = 0f;   // additive delta (applied first)
+    public float  Multiplier { get; set; } = 1f;   // multiplicative scale (applied after all flats)
+}
+
 public class UpgradeDefinition
 {
     public string Id          { get; set; } = "";
     public string Name        { get; set; } = "";
     public string Description { get; set; } = "";
-    public string Stat        { get; set; } = "";
-    public float  Amount      { get; set; }
-    public Dictionary<string, int> Cost { get; set; } = new();
+    public List<StatModifier>      Modifiers { get; set; } = new();
+    public Dictionary<string, int> Cost      { get; set; } = new();
 }
