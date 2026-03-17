@@ -85,7 +85,16 @@ public partial class DeployerNode : Node3D
 
         _spawnCooldown -= (float)delta;
         if (_spawnCooldown <= 0f && _livingDrones < _config.MaxDronesPerDeployer)
+        {
+            float dist = GlobalPosition.DistanceTo(_playerCar.GlobalPosition);
+            if (dist > _config.DroneMaxDeployerDistance)
+            {
+                _isActive = false;
+                GD.Print($"[DeployerNode] {Name} deactivated — player out of range ({dist:F1} > {_config.DroneMaxDeployerDistance}).");
+                return;
+            }
             SpawnDrone();
+        }
     }
 
     private void SpawnDrone()
