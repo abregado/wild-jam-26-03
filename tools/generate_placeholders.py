@@ -4,23 +4,19 @@ Generate placeholder GLB files for Wild Jam 26-03.
 
 Each GLB contains:
   - 'Body'     : visual mesh node (box / cylinder / sphere / capsule)
-  - 'Body-col' : identical geometry used by Godot's importer to auto-generate
-                 ConvexPolygonShape3D collision (the -col suffix convention)
+  - 'Body-col' : identical geometry — Godot auto-generates ConvexPolygonShape3D
+                 from any mesh node whose name ends with '-col' at import time.
 
 Usage:
   python tools/generate_placeholders.py
 
-Requires:
-  pip install pygltflib numpy
+No dependencies beyond the Python standard library.
 """
 
+import json
+import math
 import os
-import numpy as np
-from pygltflib import (
-    GLTF2, Asset, Scene, Node, Mesh, Primitive, Attributes,
-    Accessor, BufferView, Buffer,
-    FLOAT, UNSIGNED_INT, ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER,
-)
+import struct
 
 # ── paths ──────────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -29,190 +25,172 @@ MODELS_DIR = os.path.join(REPO_DIR, "assets", "models")
 
 
 # ── geometry helpers ────────────────────────────────────────────────────────
+# Each returns (verts, indices) where:
+#   verts   = list of [x, y, z]  (Python floats)
+#   indices = flat list of ints  (triangle list, CCW winding)
 
-def box_geo(w: float, h: float, d: float):
-    """Axis-aligned box centred at origin, 24 unique vertices (4 per face)."""
+def box_geo(w, h, d):
     hw, hh, hd = w / 2, h / 2, d / 2
-    v = np.array([
-        # +X face
+    verts = [
+        # +X
         [ hw, -hh, -hd], [ hw, -hh,  hd], [ hw,  hh,  hd], [ hw,  hh, -hd],
-        # -X face
+        # -X
         [-hw, -hh,  hd], [-hw, -hh, -hd], [-hw,  hh, -hd], [-hw,  hh,  hd],
-        # +Y face
+        # +Y
         [-hw,  hh, -hd], [ hw,  hh, -hd], [ hw,  hh,  hd], [-hw,  hh,  hd],
-        # -Y face
+        # -Y
         [-hw, -hh,  hd], [ hw, -hh,  hd], [ hw, -hh, -hd], [-hw, -hh, -hd],
-        # +Z face
+        # +Z
         [ hw, -hh,  hd], [-hw, -hh,  hd], [-hw,  hh,  hd], [ hw,  hh,  hd],
-        # -Z face
+        # -Z
         [-hw, -hh, -hd], [ hw, -hh, -hd], [ hw,  hh, -hd], [-hw,  hh, -hd],
-    ], dtype=np.float32)
-    face = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.uint32)
-    idx  = np.concatenate([face + 4 * i for i in range(6)]).ravel()
-    return v, idx.astype(np.uint32)
+    ]
+    indices = []
+    for i in range(6):
+        b = i * 4
+        indices += [b, b+1, b+2,  b, b+2, b+3]
+    return verts, indices
 
 
-def cylinder_geo(radius: float, height: float, segments: int = 16):
-    """Capped cylinder centred at origin."""
+def cylinder_geo(radius, height, segments=16):
     hh  = height / 2
-    ang = np.linspace(0, 2 * np.pi, segments, endpoint=False)
-    xs, zs = radius * np.cos(ang), radius * np.sin(ang)
+    tc  = segments * 2      # top-centre vertex index
+    bc  = segments * 2 + 1  # bot-centre vertex index
+    verts = []
+    for i in range(segments):
+        a = 2 * math.pi * i / segments
+        verts.append([radius * math.cos(a),  hh, radius * math.sin(a)])
+    for i in range(segments):
+        a = 2 * math.pi * i / segments
+        verts.append([radius * math.cos(a), -hh, radius * math.sin(a)])
+    verts += [[0.0,  hh, 0.0], [0.0, -hh, 0.0]]   # tc, bc
 
-    top_ring = np.column_stack([xs,  np.full(segments,  hh), zs]).astype(np.float32)
-    bot_ring = np.column_stack([xs,  np.full(segments, -hh), zs]).astype(np.float32)
-    top_cap  = np.array([[0.0,  hh, 0.0]], dtype=np.float32)
-    bot_cap  = np.array([[0.0, -hh, 0.0]], dtype=np.float32)
-    verts    = np.vstack([top_ring, bot_ring, top_cap, bot_cap])   # len = 2*seg+2
-
-    tc = segments * 2      # top-centre index
-    bc = segments * 2 + 1  # bot-centre index
-
-    tris = []
+    indices = []
     for i in range(segments):
         n = (i + 1) % segments
-        # side quad (two tris)
-        tris += [i,    n,           segments + i]
-        tris += [n,    segments+n,  segments + i]
-        # top cap fan
-        tris += [tc, i, n]
-        # bottom cap fan (reverse winding to face outward)
-        tris += [bc, segments + n, segments + i]
-
-    return verts, np.array(tris, dtype=np.uint32)
+        indices += [i, n, segments+i,  n, segments+n, segments+i]  # side
+        indices += [tc, i, n]                                        # top cap
+        indices += [bc, segments+n, segments+i]                      # bot cap
+    return verts, indices
 
 
-def sphere_geo(radius: float, segments: int = 16, rings: int = 8):
-    """UV sphere centred at origin."""
+def sphere_geo(radius, segments=16, rings=8):
     verts = []
     for r in range(rings + 1):
-        phi = np.pi * r / rings
+        phi = math.pi * r / rings
         for s in range(segments):
-            theta = 2 * np.pi * s / segments
+            theta = 2 * math.pi * s / segments
             verts.append([
-                radius * np.sin(phi) * np.cos(theta),
-                radius * np.cos(phi),
-                radius * np.sin(phi) * np.sin(theta),
+                radius * math.sin(phi) * math.cos(theta),
+                radius * math.cos(phi),
+                radius * math.sin(phi) * math.sin(theta),
             ])
-    verts = np.array(verts, dtype=np.float32)
-
-    tris = []
+    indices = []
     for r in range(rings):
         for s in range(segments):
             ns = (s + 1) % segments
             i0, i1 =  r      * segments + s,   r      * segments + ns
             i2, i3 = (r + 1) * segments + s,  (r + 1) * segments + ns
-            if r > 0:
-                tris += [i0, i2, i1]
-            if r < rings - 1:
-                tris += [i1, i2, i3]
-
-    return verts, np.array(tris, dtype=np.uint32)
+            if r > 0:       indices += [i0, i2, i1]
+            if r < rings-1: indices += [i1, i2, i3]
+    return verts, indices
 
 
-def capsule_geo(radius: float, total_height: float, segments: int = 16, rings: int = 4):
-    """
-    Capsule centred at origin.  total_height includes both hemispheres.
-    Constructed as: top hemisphere  +  equator bridge  +  bottom hemisphere.
-    """
+def capsule_geo(radius, total_height, segments=16, rings=4):
     body_h = max(0.0, total_height - 2 * radius)
     hbh    = body_h / 2
     verts  = []
-
-    # top hemisphere  (phi: 0 → π/2,  pole → equator, y positive)
-    for r in range(rings + 1):
-        phi  = (np.pi / 2) * r / rings
-        y    =  radius * np.cos(phi) + hbh
-        rr   =  radius * np.sin(phi)
+    for r in range(rings + 1):          # top hemisphere
+        phi = (math.pi / 2) * r / rings
+        y, rr = radius * math.cos(phi) + hbh, radius * math.sin(phi)
         for s in range(segments):
-            theta = 2 * np.pi * s / segments
-            verts.append([rr * np.cos(theta), y, rr * np.sin(theta)])
-
-    # bottom hemisphere (phi: 0 → π/2,  equator → pole, y negative)
-    for r in range(rings + 1):
-        phi  = (np.pi / 2) * r / rings
-        y    = -(radius * np.cos(phi) + hbh)
-        rr   =  radius * np.sin(phi)
+            a = 2 * math.pi * s / segments
+            verts.append([rr * math.cos(a), y, rr * math.sin(a)])
+    for r in range(rings + 1):          # bottom hemisphere
+        phi = (math.pi / 2) * r / rings
+        y, rr = -(radius * math.cos(phi) + hbh), radius * math.sin(phi)
         for s in range(segments):
-            theta = 2 * np.pi * s / segments
-            verts.append([rr * np.cos(theta), y, rr * np.sin(theta)])
+            a = 2 * math.pi * s / segments
+            verts.append([rr * math.cos(a), y, rr * math.sin(a)])
 
-    verts  = np.array(verts, dtype=np.float32)
-    offset = (rings + 1) * segments   # start index of bottom hemisphere
-
-    tris = []
-
-    # top hemisphere quads
-    for r in range(rings):
+    offset  = (rings + 1) * segments
+    indices = []
+    for r in range(rings):              # top hemisphere quads
         for s in range(segments):
             ns = (s + 1) % segments
-            i0, i1 =  r      * segments + s,   r      * segments + ns
-            i2, i3 = (r + 1) * segments + s,  (r + 1) * segments + ns
-            tris += [i0, i2, i1,  i1, i2, i3]
-
-    # equator bridge: top ring[rings] ↔ bottom ring[0]
-    top_eq = rings * segments
-    bot_eq = offset
-    for s in range(segments):
+            i0, i1 =  r*segments+s,   r*segments+ns
+            i2, i3 = (r+1)*segments+s, (r+1)*segments+ns
+            indices += [i0, i2, i1,  i1, i2, i3]
+    for s in range(segments):           # equator bridge
         ns = (s + 1) % segments
-        t0, t1 = top_eq + s, top_eq + ns
-        b0, b1 = bot_eq + s, bot_eq + ns
-        tris += [t0, b0, t1,  t1, b0, b1]
-
-    # bottom hemisphere quads (reversed winding so normals face out)
-    for r in range(rings):
+        t0, t1 = rings*segments+s, rings*segments+ns
+        b0, b1 = offset+s, offset+ns
+        indices += [t0, b0, t1,  t1, b0, b1]
+    for r in range(rings):              # bottom hemisphere quads (reversed)
         for s in range(segments):
             ns = (s + 1) % segments
-            i0 = offset +  r      * segments + s
-            i1 = offset +  r      * segments + ns
-            i2 = offset + (r + 1) * segments + s
-            i3 = offset + (r + 1) * segments + ns
-            tris += [i0, i1, i2,  i1, i3, i2]
+            i0 = offset + r*segments+s
+            i1 = offset + r*segments+ns
+            i2 = offset + (r+1)*segments+s
+            i3 = offset + (r+1)*segments+ns
+            indices += [i0, i1, i2,  i1, i3, i2]
+    return verts, indices
 
-    return verts, np.array(tris, dtype=np.uint32)
 
+# ── GLB writer (zero external dependencies) ─────────────────────────────────
 
-# ── GLB writer ──────────────────────────────────────────────────────────────
+def write_glb(path, verts, indices):
+    """Write a binary GLTF (.glb) file with Body and Body-col mesh nodes."""
+    # ── binary blob ──────────────────────────────────────────────────────
+    vb  = struct.pack(f"{len(verts)*3}f",   *(c for v in verts   for c in v))
+    ib  = struct.pack(f"{len(indices)}I",   *indices)
+    pad = (4 - len(vb) % 4) % 4       # pad to 4-byte boundary between views
+    bin_data = vb + b"\x00" * pad + ib
 
-def write_glb(path: str, verts: np.ndarray, indices: np.ndarray) -> None:
-    """Write a minimal GLB with two mesh nodes: 'Body' and 'Body-col'."""
-    vb  = verts.astype(np.float32).tobytes()
-    ib  = indices.astype(np.uint32).tobytes()
-    pad = (4 - len(vb) % 4) % 4        # align index buffer to 4-byte boundary
-    blob = vb + b"\x00" * pad + ib
+    vmin = [min(v[i] for v in verts) for i in range(3)]
+    vmax = [max(v[i] for v in verts) for i in range(3)]
 
-    gltf = GLTF2()
-    gltf.asset = Asset(version="2.0", generator="Wild Jam 26-03 placeholder generator")
+    # ── GLTF JSON ────────────────────────────────────────────────────────
+    gltf_json = {
+        "asset": {"version": "2.0", "generator": "Wild Jam 26-03 placeholder generator"},
+        "scene": 0,
+        "scenes":  [{"nodes": [0, 1]}],
+        "nodes":   [{"name": "Body", "mesh": 0}, {"name": "Body-col", "mesh": 0}],
+        "meshes":  [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "mode": 4}]}],
+        "accessors": [
+            {"bufferView": 0, "byteOffset": 0, "componentType": 5126,
+             "count": len(verts),   "type": "VEC3", "min": vmin, "max": vmax},
+            {"bufferView": 1, "byteOffset": 0, "componentType": 5125,
+             "count": len(indices), "type": "SCALAR"},
+        ],
+        "bufferViews": [
+            {"buffer": 0, "byteOffset": 0,              "byteLength": len(vb),  "target": 34962},
+            {"buffer": 0, "byteOffset": len(vb) + pad,  "byteLength": len(ib),  "target": 34963},
+        ],
+        "buffers": [{"byteLength": len(bin_data)}],
+    }
 
-    gltf.buffers = [Buffer(byteLength=len(blob))]
+    # ── assemble GLB ─────────────────────────────────────────────────────
+    # JSON chunk: padded to 4-byte boundary with spaces (0x20)
+    json_bytes = json.dumps(gltf_json, separators=(",", ":")).encode("utf-8")
+    json_pad   = (4 - len(json_bytes) % 4) % 4
+    json_chunk = json_bytes + b" " * json_pad
 
-    gltf.bufferViews = [
-        BufferView(buffer=0, byteOffset=0,
-                   byteLength=len(vb), target=ARRAY_BUFFER),
-        BufferView(buffer=0, byteOffset=len(vb) + pad,
-                   byteLength=len(ib), target=ELEMENT_ARRAY_BUFFER),
-    ]
+    # BIN chunk: already 4-byte aligned above
+    bin_chunk  = bin_data
 
-    vmin = verts.min(axis=0).tolist()
-    vmax = verts.max(axis=0).tolist()
+    # chunk headers: [length u32][type u32]
+    json_header = struct.pack("<II", len(json_chunk), 0x4E4F534A)  # "JSON"
+    bin_header  = struct.pack("<II", len(bin_chunk),  0x004E4942)  # "BIN\0"
 
-    gltf.accessors = [
-        Accessor(bufferView=0, byteOffset=0, componentType=FLOAT,
-                 count=len(verts),   type="VEC3", min=vmin, max=vmax),
-        Accessor(bufferView=1, byteOffset=0, componentType=UNSIGNED_INT,
-                 count=len(indices), type="SCALAR"),
-    ]
+    total_length = 12 + 8 + len(json_chunk) + 8 + len(bin_chunk)
+    glb_header   = struct.pack("<III", 0x46546C67, 2, total_length)  # magic, version, length
 
-    prim = Primitive(attributes=Attributes(POSITION=0), indices=1, mode=4)
-    gltf.meshes = [Mesh(primitives=[prim])]
-
-    # Two scene nodes sharing the same mesh
-    gltf.nodes  = [Node(name="Body", mesh=0), Node(name="Body-col", mesh=0)]
-    gltf.scenes = [Scene(nodes=[0, 1])]
-    gltf.scene  = 0
-
-    gltf.set_binary_blob(blob)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    gltf.save_binary(path)
+    with open(path, "wb") as f:
+        f.write(glb_header)
+        f.write(json_header + json_chunk)
+        f.write(bin_header  + bin_chunk)
     print(f"  {os.path.relpath(path, REPO_DIR)}")
 
 

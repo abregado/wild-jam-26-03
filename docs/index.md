@@ -38,7 +38,6 @@ needing to adjust CollisionShape sizes in the scene files.
 1. **Generate placeholders** (first-time setup only)
 
    ```bash
-   pip install pygltflib numpy
    python tools/generate_placeholders.py
    ```
 
