@@ -13,11 +13,13 @@ using Godot;
 public partial class ClampNode : Node3D
 {
     [Signal] public delegate void DestroyedEventHandler();
+    [Signal] public delegate void DamageTakenEventHandler();
 
     public bool IsAlive { get; private set; } = true;
 
     private float _hp;
     private MeshInstance3D _mesh = null!;
+    private bool _damageTakenFired;
 
     public override void _Ready()
     {
@@ -34,6 +36,11 @@ public partial class ClampNode : Node3D
     public void TakeDamage(float amount)
     {
         if (!IsAlive) return;
+        if (!_damageTakenFired)
+        {
+            _damageTakenFired = true;
+            EmitSignal(SignalName.DamageTaken);
+        }
         _hp -= amount;
         if (_hp <= 0f)
             Destroy();

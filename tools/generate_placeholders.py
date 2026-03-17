@@ -218,7 +218,12 @@ MODELS = {
     "projectiles/bullet": ("capsule",  0.18,  0.7),
 
     # shape        radius
-    "projectiles/beacon": ("sphere",   0.15),
+    "projectiles/beacon":       ("sphere",   0.15),
+    "projectiles/drone_bullet": ("sphere",   0.08),
+
+    # shape        w     h     d
+    "enemies/deployer": ("box",      1.2,  0.4,  0.8),
+    "enemies/drone":    ("box",      0.8,  0.25, 0.8),
 }
 
 
@@ -233,7 +238,7 @@ def main():
         else:
             raise ValueError(f"Unknown shape: {shape!r}")
         write_glb(os.path.join(MODELS_DIR, rel + ".glb"), v, idx)
-    print("Done — 10 GLBs written.")
+    print(f"Done — {len(MODELS)} GLBs written.")
 
 
 if __name__ == "__main__":

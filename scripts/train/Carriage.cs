@@ -9,6 +9,7 @@ using System.Collections.Generic;
 public partial class Carriage : Node3D
 {
     public List<ContainerNode> Containers { get; } = new();
+    public List<DeployerNode> Deployers { get; } = new();
 
     public override void _Ready()
     {

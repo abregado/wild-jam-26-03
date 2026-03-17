@@ -53,6 +53,25 @@ public partial class GameConfig : Node
     // Environment
     public float PillarSpacing { get; private set; } = 20f;
 
+    // Enemies
+    public int MaxDronesPerDeployer { get; private set; } = 3;
+    public int MaxDeployersPerCarriage { get; private set; } = 2;
+    public float DeployerCooldown { get; private set; } = 8f;
+    public float DroneMoveSpeed { get; private set; } = 10f;
+    public float DroneCombatSpeed { get; private set; } = 5f;
+    public float DroneFireRate { get; private set; } = 1.2f;
+    public float CarSpeedDamagePerHit { get; private set; } = 0.3f;
+    public float DroneHeightMin { get; private set; } = 2f;
+    public float DroneHeightMax { get; private set; } = 5f;
+    public float DroneHitpoints { get; private set; } = 25f;
+    public float DroneBulletSpeed { get; private set; } = 35f;
+    public float DroneBulletSize { get; private set; } = 0.12f;
+    public float DroneHitChance { get; private set; } = 0.6f;
+    public float ShieldBlockAngle { get; private set; } = 50f;
+    public float DroneRepositionChance { get; private set; } = 0.4f;
+    public float DroneChaseDistance { get; private set; } = 20f;
+    public float DroneMaxDeployerDistance { get; private set; } = 50f;
+
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
 
@@ -156,6 +175,28 @@ public partial class GameConfig : Node
         {
             var e = envVar.AsGodotDictionary();
             PillarSpacing = GetFloat(e, "pillar_spacing", PillarSpacing);
+        }
+
+        if (data.TryGetValue("enemies", out var enemiesVar))
+        {
+            var en = enemiesVar.AsGodotDictionary();
+            MaxDronesPerDeployer = GetInt(en, "max_drones_per_deployer", MaxDronesPerDeployer);
+            MaxDeployersPerCarriage = GetInt(en, "max_deployers_per_carriage", MaxDeployersPerCarriage);
+            DeployerCooldown = GetFloat(en, "deployer_cooldown", DeployerCooldown);
+            DroneMoveSpeed = GetFloat(en, "drone_move_speed", DroneMoveSpeed);
+            DroneCombatSpeed = GetFloat(en, "drone_combat_speed", DroneCombatSpeed);
+            DroneFireRate = GetFloat(en, "drone_fire_rate", DroneFireRate);
+            CarSpeedDamagePerHit = GetFloat(en, "car_speed_damage_per_hit", CarSpeedDamagePerHit);
+            DroneHeightMin = GetFloat(en, "drone_height_min", DroneHeightMin);
+            DroneHeightMax = GetFloat(en, "drone_height_max", DroneHeightMax);
+            DroneHitpoints = GetFloat(en, "drone_hitpoints", DroneHitpoints);
+            DroneBulletSpeed = GetFloat(en, "drone_bullet_speed", DroneBulletSpeed);
+            DroneBulletSize = GetFloat(en, "drone_bullet_size", DroneBulletSize);
+            DroneHitChance = GetFloat(en, "drone_hit_chance", DroneHitChance);
+            ShieldBlockAngle = GetFloat(en, "shield_block_angle", ShieldBlockAngle);
+            DroneRepositionChance = GetFloat(en, "drone_reposition_chance", DroneRepositionChance);
+            DroneChaseDistance = GetFloat(en, "drone_chase_distance", DroneChaseDistance);
+            DroneMaxDeployerDistance = GetFloat(en, "drone_max_deployer_distance", DroneMaxDeployerDistance);
         }
 
         if (data.TryGetValue("cargo_types", out var cargoVar))

@@ -38,6 +38,8 @@ public partial class TrainBuilder : Node3D
     private PackedScene _clampScene = null!;
     private GameConfig _config = null!;
 
+    private const float DeployerHeight = 0.4f;
+
     public float LocomotiveZ { get; private set; }
     public List<ContainerNode> AllContainers { get; } = new();
     private readonly List<Carriage> _carriages = new();
@@ -51,6 +53,8 @@ public partial class TrainBuilder : Node3D
 
         BuildTrain();
     }
+
+    private PlayerCar? _playerCar;
 
     private void BuildTrain()
     {
@@ -93,6 +97,9 @@ public partial class TrainBuilder : Node3D
             int numContainers = rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage);
             AttachContainers(carriageInstance, numContainers, zCenter, rng);
 
+            int numDeployers = rng.RandiRange(1, _config.MaxDeployersPerCarriage);
+            AttachDeployers(carriageInstance, numDeployers, zCenter, rng);
+
             currentZ += CarriageLength + CarGap;
         }
 
@@ -104,7 +111,42 @@ public partial class TrainBuilder : Node3D
         AddChild(loco);
         LocomotiveZ = currentZ + LocoLength;
 
+        // Deployers + activation signal wiring (done after all carriages are built)
+        _playerCar ??= GetTree().Root.FindChild("PlayerCar", true, false) as PlayerCar;
+        foreach (var carriage in _carriages)
+            foreach (var deployer in carriage.Deployers)
+                deployer.SetPlayerCar(_playerCar);
+        WireDeployerActivation();
+
         GD.Print($"[TrainBuilder] Built {numCarriages} carriages. LocomotiveZ={LocomotiveZ}, Containers={AllContainers.Count}");
+    }
+
+    private void WireDeployerActivation()
+    {
+        for (int i = 0; i < _carriages.Count; i++)
+        {
+            if (_carriages[i].Deployers.Count == 0) continue;
+
+            // Connect containers/clamps from this carriage and direct neighbors.
+            // NOTE: iterate GetChildren() directly — Carriage.Containers is populated in
+            // _Ready() which fires before containers are attached, so that list is empty.
+            for (int j = Mathf.Max(0, i - 1); j <= Mathf.Min(_carriages.Count - 1, i + 1); j++)
+            {
+                foreach (Node carriageChild in _carriages[j].GetChildren())
+                {
+                    if (carriageChild is not ContainerNode container) continue;
+                    foreach (var deployer in _carriages[i].Deployers)
+                    {
+                        container.DamageTaken += deployer.Activate;
+                        foreach (Node containerChild in container.GetChildren())
+                        {
+                            if (containerChild is ClampNode clamp)
+                                clamp.DamageTaken += deployer.Activate;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void AttachContainers(Carriage carriage, int count, float carriageZCenter, RandomNumberGenerator rng)
@@ -137,6 +179,22 @@ public partial class TrainBuilder : Node3D
 
             AttachClamps(containerInstance, rng);
             AllContainers.Add(containerInstance);
+        }
+    }
+
+    private void AttachDeployers(Carriage carriage, int count, float carriageZCenter, RandomNumberGenerator rng)
+    {
+        float spacing = CarriageLength / (count + 1);
+        float localY = CarriageHeight / 2f + DeployerHeight / 2f;
+
+        for (int i = 0; i < count; i++)
+        {
+            var deployer = new DeployerNode();
+            deployer.Name = $"Deployer_{carriage.Name}_{i}";
+            float zOffset = -CarriageLength / 2f + spacing * (i + 1);
+            deployer.Position = new Vector3(0f, localY, zOffset);
+            carriage.AddChild(deployer);
+            carriage.Deployers.Add(deployer);
         }
     }
 

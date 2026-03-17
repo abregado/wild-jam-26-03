@@ -24,6 +24,7 @@ public partial class ContainerNode : Node3D
 {
     [Signal] public delegate void CargoDetachedEventHandler(string cargoName);
     [Signal] public delegate void ContainerDestroyedEventHandler();
+    [Signal] public delegate void DamageTakenEventHandler();
 
     public bool IsTagged => _beaconCount > 0;
     public string CargoName { get; private set; } = "Unknown";
@@ -37,6 +38,7 @@ public partial class ContainerNode : Node3D
     private MeshInstance3D _mesh = null!;
     private StandardMaterial3D _material = null!;
     private bool _isDead;
+    private bool _damageTakenFired;
 
     public override void _Ready()
     {
@@ -74,6 +76,11 @@ public partial class ContainerNode : Node3D
     public void TakeDamage(float amount)
     {
         if (_isDead) return;
+        if (!_damageTakenFired)
+        {
+            _damageTakenFired = true;
+            EmitSignal(SignalName.DamageTaken);
+        }
         _hp -= amount;
         if (_hp <= 0f)
             Explode();

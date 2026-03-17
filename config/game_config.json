@@ -47,6 +47,25 @@
   "environment": {
     "pillar_spacing": 20.0
   },
+  "enemies": {
+    "max_drones_per_deployer": 3,
+    "max_deployers_per_carriage": 2,
+    "deployer_cooldown": 8.0,
+    "drone_move_speed": 10.0,
+    "drone_combat_speed": 5.0,
+    "drone_fire_rate": 1.2,
+    "car_speed_damage_per_hit": 0.3,
+    "drone_height_min": 2.0,
+    "drone_height_max": 5.0,
+    "drone_hitpoints": 25.0,
+    "drone_bullet_speed": 35.0,
+    "drone_bullet_size": 0.12,
+    "drone_hit_chance": 0.6,
+    "shield_block_angle": 50.0,
+    "drone_reposition_chance": 0.4,
+    "drone_chase_distance": 20.0,
+    "drone_max_deployer_distance": 50.0
+  },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },
     { "name": "Chemicals", "color": "#44FF88" },

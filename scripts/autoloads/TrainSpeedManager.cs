@@ -20,6 +20,7 @@ public partial class TrainSpeedManager : Node
 
     private GameConfig _config = null!;
     private bool _isZoomingAway;
+    private float _carSpeedPenalty;
 
     public override void _Ready()
     {
@@ -30,9 +31,18 @@ public partial class TrainSpeedManager : Node
     public void ResetSpeed()
     {
         _isZoomingAway = false;
+        _carSpeedPenalty = 0f;
         CurrentTrainSpeed = _config.BaseTrainSpeed;
         MaxRelativeForward = _config.MaxRelativeVelocity;
         MaxRelativeBackward = _config.MinRelativeVelocity;
+    }
+
+    /// <summary>Called when a drone bullet hits the player car. Reduces max forward velocity.</summary>
+    public void ApplyCarSpeedDamage(float amount)
+    {
+        _carSpeedPenalty += amount;
+        float speedIncrease = CurrentTrainSpeed - _config.BaseTrainSpeed;
+        MaxRelativeForward = _config.MaxRelativeVelocity - speedIncrease - _carSpeedPenalty;
     }
 
     /// <summary>Called when a container detaches (cargo collected).</summary>
@@ -46,7 +56,7 @@ public partial class TrainSpeedManager : Node
         if (_isZoomingAway) return;
         CurrentTrainSpeed += _config.SpeedIncreasePerContainer;
         float speedIncrease = CurrentTrainSpeed - _config.BaseTrainSpeed;
-        MaxRelativeForward = _config.MaxRelativeVelocity - speedIncrease;
+        MaxRelativeForward = _config.MaxRelativeVelocity - speedIncrease - _carSpeedPenalty;
     }
 
     /// <summary>

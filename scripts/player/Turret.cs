@@ -208,8 +208,8 @@ public partial class Turret : Node3D
             FireBeacon();
     }
 
-    // Mask 7 = layer 1 (world/train bodies) + layer 2 (containers) + layer 4 (clamps)
-    private const uint AimRayMask = 7u;
+    // Mask 39 = layer 1 (world/train) + layer 2 (containers) + layer 3 (clamps) + layer 6 (drones)
+    private const uint AimRayMask = 39u;
 
     private Vector3 GetTurretAimPoint()
     {

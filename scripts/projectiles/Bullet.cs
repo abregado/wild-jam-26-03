@@ -78,8 +78,8 @@ public partial class Bullet : Node3D
         AddChild(_trail);
     }
 
-    // Mask 7 = layer 1 (World/Train bodies) + layer 2 (Containers) + layer 3 (Clamps)
-    private const uint HitMask = 7u;
+    // Mask 39 = layer 1 (World/Train) + layer 2 (Containers) + layer 3 (Clamps) + layer 6 (Drones)
+    private const uint HitMask = 39u;
 
     public override void _Process(double delta)
     {
@@ -111,6 +111,8 @@ public partial class Bullet : Node3D
                     container.TakeDamage(_damage);
                     container.TakeSplashDamage(hitPos, _blastRadius, _damage);
                 }
+                else if (parent is DroneNode drone)
+                    drone.TakeDamage(_damage);
             }
 
             GlobalPosition = hitPos;

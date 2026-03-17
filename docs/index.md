@@ -26,6 +26,9 @@ any time and the game picks it up automatically after a Godot reimport.
 | `assets/models/projectiles/bullet.glb` | Capsule | r 0.18, total h 0.7 |
 | `assets/models/projectiles/beacon.glb` | Sphere | r 0.15 |
 | `assets/models/environment/pillar.glb` | Cylinder | r 0.3, h 10.0 |
+| `assets/models/enemies/deployer.glb` | Box | 1.2 × 0.4 × 0.8 |
+| `assets/models/enemies/drone.glb` | Box | 0.8 × 0.25 × 0.8 |
+| `assets/models/projectiles/drone_bullet.glb` | Sphere | r 0.08 |
 
 All dimensions are in **Godot world units** and match the current collision
 shapes exactly.  Keeping your replacement model close to these bounds avoids

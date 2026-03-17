@@ -28,13 +28,3 @@ Thumbs.db
 /build_debug/
 /build_linux/
 /dist/
-/assets/models/environment/pillar.glb
-/assets/models/player/player_car.glb
-/assets/models/player/turret.glb
-/assets/models/projectiles/beacon.glb
-/assets/models/projectiles/bullet.glb
-/assets/models/train/caboose.glb
-/assets/models/train/carriage.glb
-/assets/models/train/clamp.glb
-/assets/models/train/container.glb
-/assets/models/train/locomotive.glb
