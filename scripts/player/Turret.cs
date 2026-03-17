@@ -50,6 +50,10 @@ public partial class Turret : Node3D
 
     private Vector3 _turretTargetPoint;
 
+    // ── Debug ─────────────────────────────────────────────────────────────────
+    [Export] public bool DebugTracking { get; set; } = false;
+    private Label? _debugLabel;
+
     public int CurrentAmmo => _currentAmmo;
     public bool IsReloading => _isReloading;
     public float ReloadProgress => _isReloading && _config != null
@@ -76,6 +80,18 @@ public partial class Turret : Node3D
 
         SetupTurretDot();
         SetupMuzzleFlash();
+
+        if (DebugTracking)
+            SetupDebugLabel();
+    }
+
+    private void SetupDebugLabel()
+    {
+        _debugLabel = new Label();
+        _debugLabel.Position = new Vector2(8, 120);
+        _debugLabel.AddThemeFontSizeOverride("font_size", 13);
+        // Add to the first CanvasLayer or directly to the viewport
+        GetTree().Root.CallDeferred(Node.MethodName.AddChild, _debugLabel);
     }
 
     private void SetupTurretDot()
@@ -142,7 +158,27 @@ public partial class Turret : Node3D
         float minY = -Mathf.Sin(Mathf.DegToRad(_config.TurretMaxPitchDown));
         if (cameraForward.Y < minY)
             cameraForward = new Vector3(cameraForward.X, minY, cameraForward.Z).Normalized();
-        if (cameraForward.LengthSquared() > 0.25f)
+
+        float fwdLen2  = cameraForward.LengthSquared();
+        float dotUp    = cameraForward.Dot(Vector3.Up);   // near ±1 → gimbal danger
+        bool  basisNaN = float.IsNaN(GlobalTransform.Basis.X.X);
+
+        if (DebugTracking && _debugLabel != null && _debugLabel.IsInsideTree())
+        {
+            _debugLabel.Text =
+                $"fwd: {cameraForward:F2}  len²: {fwdLen2:F3}\n" +
+                $"dot(up): {dotUp:F3}  basisNaN: {basisNaN}\n" +
+                $"tracking: {(fwdLen2 > 0.25f && !basisNaN ? "YES" : "NO ← STOPPED")}";
+        }
+
+        if (basisNaN)
+        {
+            // Basis poisoned by a previous degenerate Slerp — reset to identity.
+            GD.PrintErr("[Turret] NaN basis detected — resetting. dotUp was: " + dotUp);
+            GlobalTransform = new Transform3D(Basis.Identity, GlobalPosition);
+        }
+
+        if (fwdLen2 > 0.25f)
         {
             var targetBasis = Basis.LookingAt(cameraForward, Vector3.Up);
             float t = 1f - Mathf.Exp(-_config.TurretTrackingSpeed * dt);
