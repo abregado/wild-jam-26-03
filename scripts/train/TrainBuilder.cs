@@ -74,7 +74,8 @@ public partial class TrainBuilder : Node3D
 
         // --- Caboose ---
         var caboose = CreateBoxCar("Caboose", new Vector3(CarriageWidth, CarriageHeight, CabooseLength),
-                                    new Color(0.4f, 0.2f, 0.1f));
+                                    new Color(0.4f, 0.2f, 0.1f),
+                                    "res://assets/models/train/caboose.glb");
         caboose.Position = new Vector3(0, CarriageY, currentZ + CabooseLength / 2f);
         AddChild(caboose);
         currentZ += CabooseLength + CarGap;
@@ -97,7 +98,8 @@ public partial class TrainBuilder : Node3D
 
         // --- Locomotive ---
         var loco = CreateBoxCar("Locomotive", new Vector3(CarriageWidth, CarriageHeight + 0.5f, LocoLength),
-                                 new Color(0.6f, 0.1f, 0.1f));
+                                 new Color(0.6f, 0.1f, 0.1f),
+                                 "res://assets/models/train/locomotive.glb");
         loco.Position = new Vector3(0, CarriageY + 0.25f, currentZ + LocoLength / 2f);
         AddChild(loco);
         LocomotiveZ = currentZ + LocoLength;
@@ -156,16 +158,23 @@ public partial class TrainBuilder : Node3D
         }
     }
 
-    private static Node3D CreateBoxCar(string name, Vector3 size, Color color)
+    private static Node3D CreateBoxCar(string name, Vector3 size, Color color, string? glbPath = null)
     {
         var node = new Node3D { Name = name };
 
-        var mesh = new MeshInstance3D { Name = "MeshSlot" };
-        var box = new BoxMesh { Size = size };
-        var mat = new StandardMaterial3D { AlbedoColor = color };
-        box.Material = mat;
-        mesh.Mesh = box;
-        node.AddChild(mesh);
+        var meshSlot = new MeshInstance3D { Name = "MeshSlot" };
+        var loadedMesh = glbPath != null ? TryLoadGlbMesh(glbPath) : null;
+        if (loadedMesh != null)
+        {
+            meshSlot.Mesh = loadedMesh;
+        }
+        else
+        {
+            var box = new BoxMesh { Size = size };
+            box.Material = new StandardMaterial3D { AlbedoColor = color };
+            meshSlot.Mesh = box;
+        }
+        node.AddChild(meshSlot);
 
         // Layer 1 (World/Train) — detectable by aim raycasts but not by bullets
         var body = new StaticBody3D { CollisionLayer = 1, CollisionMask = 0, Name = "TrainBody" };
@@ -174,6 +183,22 @@ public partial class TrainBuilder : Node3D
         node.AddChild(body);
 
         return node;
+    }
+
+    /// <summary>
+    /// Loads the 'Body' mesh from a GLB scene file.
+    /// Returns null if the file is not found or has no Body node — caller falls back to procedural.
+    /// </summary>
+    private static Mesh? TryLoadGlbMesh(string glbPath)
+    {
+        var scene = GD.Load<PackedScene>(glbPath);
+        if (scene == null) return null;
+
+        var root = scene.Instantiate<Node3D>();
+        var bodyNode = root.FindChild("Body") as MeshInstance3D;
+        var mesh = bodyNode?.Mesh;
+        root.QueueFree();
+        return mesh;
     }
 
     /// <summary>Rebuild train for a new game (called by LevelManager on Play Again).</summary>

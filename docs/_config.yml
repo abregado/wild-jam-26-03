@@ -1,0 +1,17 @@
+title: "Wild Jam 26-03 — Art Pipeline Docs"
+description: "How to replace placeholder models with final GLB assets"
+theme: minima
+
+url: ""
+baseurl: ""
+
+# Navigation
+header_pages:
+  - index.md
+  - replacing-models.md
+  - collision.md
+  - materials.md
+  - import-settings.md
+  - wiring-scenes.md
+
+plugins: []
