@@ -10,4 +10,4 @@ Pre-built releases are available in the [Releases](../../releases) section.
 
 ## Disclaimer
 
-This project was created for [Godot Wild Jam #19](https://itch.io/jam/godot-wild-jam-19) but was **not submitted** to the jam, as AI coding agents were used extensively during development. Per the jam's spirit of human-made entries, it was kept out of the competition.
+This project was created for [Godot Wild Jam #91](https://itch.io/jam/godot-wild-jam-91) but was **not submitted** to the jam, as AI coding agents were used extensively during development. Per the jam's spirit of human-made entries, it was kept out of the competition.
