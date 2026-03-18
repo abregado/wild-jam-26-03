@@ -20,8 +20,8 @@ public partial class HUD : CanvasLayer
     private Label _trainSpeedLabel = null!;
     private Label _warningLabel = null!;
     private Label _countdownLabel = null!;
-    private Label _switchUnderIndicator = null!;
     private Label _clickPrompt = null!;
+    private HBoxContainer _flipUnderRow = null!;
 
     private PlayerCar? _playerCar;
     private Turret? _turret;
@@ -32,7 +32,6 @@ public partial class HUD : CanvasLayer
         _trainSpeedLabel = GetNode<Label>(TrainSpeedLabelPath);
         _warningLabel = GetNode<Label>(WarningLabelPath);
         _countdownLabel = GetNode<Label>(CountdownLabelPath);
-        _switchUnderIndicator = GetNode<Label>("SwitchUnderIndicator");
         _clickPrompt = GetNode<Label>("ClickPrompt");
 
         HideWarning();
@@ -62,8 +61,10 @@ public partial class HUD : CanvasLayer
         // Train speed
         _trainSpeedLabel.Text = $"Train: {tsm.CurrentTrainSpeed:F0} u/s";
 
-        // Under-switch clearance indicator
-        _switchUnderIndicator.Visible = _playerCar.CanSwitchUnder;
+        // Grey out Flip Under prompt when blocked
+        _flipUnderRow.Modulate = _playerCar.CanSwitchUnder
+            ? new Color(1f, 1f, 1f, 1f)
+            : new Color(1f, 1f, 1f, 0.3f);
 
         // Hide click prompt once mouse is captured
         _clickPrompt.Visible = Input.MouseMode != Input.MouseModeEnum.Captured;
@@ -104,7 +105,7 @@ public partial class HUD : CanvasLayer
         AddPromptRow(vbox, "mouse_left_outline.png",       "Fire");
         AddPromptRow(vbox, "mouse_right_outline.png",      "Beacon");
         AddPromptRow(vbox, "keyboard_space_outline.png",   "Flip Over");
-        AddPromptRow(vbox, "keyboard_ctrl_outline.png",    "Flip Under");
+        _flipUnderRow = AddPromptRow(vbox, "keyboard_ctrl_outline.png", "Flip Under");
     }
 
     private static VBoxContainer BuildWasdCross()
@@ -133,13 +134,14 @@ public partial class HUD : CanvasLayer
         return cross;
     }
 
-    private static void AddPromptRow(VBoxContainer parent, string glyphFile, string label)
+    private static HBoxContainer AddPromptRow(VBoxContainer parent, string glyphFile, string label)
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 8);
         row.AddChild(MakeGlyph(glyphFile, 28));
         row.AddChild(MakePromptLabel(label));
         parent.AddChild(row);
+        return row;
     }
 
     private static TextureRect MakeGlyph(string file, int size) => new TextureRect

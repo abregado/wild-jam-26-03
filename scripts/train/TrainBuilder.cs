@@ -42,6 +42,7 @@ public partial class TrainBuilder : Node3D
     private const float DeployerHeight = 0.4f;
 
     public float LocomotiveZ { get; private set; }
+    public float CabooseZ    { get; private set; }   // world-local Z of the caboose rear
     public List<ContainerNode> AllContainers { get; } = new();
     private readonly List<Carriage> _carriages = new();
 
@@ -76,6 +77,7 @@ public partial class TrainBuilder : Node3D
 
         // Caboose at Z=0, locomotive at Z=totalLength
         float currentZ = 0f;
+        CabooseZ = currentZ;   // rear of caboose in Train-local space
 
         // --- Caboose ---
         var caboose = CreateBoxCar("Caboose", new Vector3(CarriageWidth, CarriageHeight, CabooseLength),

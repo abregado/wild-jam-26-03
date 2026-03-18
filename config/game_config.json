@@ -40,7 +40,7 @@
   "speed": {
     "base_train_speed": 15.0,
     "speed_increase_per_container": 2.0,
-    "turret_range": 100.0
+    "turret_range": 10.0
   },
   "environment": {
     "pillar_spacing": 20.0

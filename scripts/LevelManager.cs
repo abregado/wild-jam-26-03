@@ -5,7 +5,7 @@ using Godot;
 /// Attach to a Node child of Main.tscn called "LevelManager".
 ///
 /// Each frame checks if player is out of turret range using TrainSpeedManager.IsPlayerOutOfRange.
-/// "Out of range" = (LocomotiveZ - playerZ) > TurretRange config value.
+/// "Out of range" = player is more than TurretRange units behind the caboose rear.
 ///
 /// When out of range:
 ///   1. Shows HUD warning with 3-second countdown.
@@ -43,7 +43,7 @@ public partial class LevelManager : Node
         float startZ = _trainBuilder.LocomotiveZ - 4f;
         _playerCar.Position = new Vector3(PlayerCar.XOffset, PlayerCar.YHeight, startZ);
         _playerCar.SetTrainFrontZ(_trainBuilder.LocomotiveZ);
-        GD.Print($"[LevelManager] Train LocomotiveZ={_trainBuilder.LocomotiveZ}, PlayerStart Z={startZ}");
+        GD.Print($"[LevelManager] LocomotiveZ={_trainBuilder.LocomotiveZ}, CabooseZ={_trainBuilder.CabooseZ}, PlayerStart Z={startZ}");
     }
 
     public override void _Process(double delta)
@@ -53,9 +53,10 @@ public partial class LevelManager : Node
         // Update player's reference to train front
         _playerCar.SetTrainFrontZ(_trainBuilder.LocomotiveZ);
 
+        float cabooseWorldZ = _trainBuilder.GlobalPosition.Z + _trainBuilder.CabooseZ;
         bool outOfRange = _tsm.IsPlayerOutOfRange(
             _playerCar.GlobalPosition.Z,
-            _trainBuilder.LocomotiveZ
+            cabooseWorldZ
         );
 
         if (outOfRange && !_warningActive && !_zoomTriggered)
