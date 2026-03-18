@@ -9,7 +9,7 @@
     "trail_thickness": 0.09,
     "ammo_per_clip": 30,
     "reload_time": 4.0,
-    "burst_count": 2,
+    "burst_count": 1,
     "burst_delay": 0.04,
     "turret_max_pitch_down": 30,
     "auto_fire": true
