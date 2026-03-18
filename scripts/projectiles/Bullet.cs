@@ -99,9 +99,9 @@ public partial class Bullet : Node3D
         if (result.Count > 0)
         {
             var hitPos = result["position"].AsVector3();
-
             // Only Area3D hits deal damage; StaticBody3D hits (train cars, rail, pillars) just stop the bullet.
-            if (result["collider"].As<Area3D>() is { } area)
+            // Use C# 'is' cast — Variant.As<T>() throws when the type doesn't match (e.g. StaticBody3D→Area3D).
+            if (result["collider"].AsGodotObject() is Area3D area)
             {
                 var parent = area.GetParent();
                 if (parent is ClampNode clamp)
@@ -124,28 +124,14 @@ public partial class Bullet : Node3D
         _distanceTraveled += move;
 
         if (_distanceTraveled >= MaxDistance)
-        {
-            DetachTrail();
             QueueFree();
-        }
     }
 
     private void HitAndDestroy()
     {
         _hasHit = true;
-        DetachTrail();
         SpawnHitEffect();
         QueueFree();
-    }
-
-    private void DetachTrail()
-    {
-        if (_trail == null || !_trail.IsInsideTree()) return;
-        var trail = _trail;
-        _trail = null!;
-        trail.Emitting = false;
-        trail.Reparent(GetTree().Root);
-        GetTree().CreateTimer(trail.Lifetime).Timeout += trail.QueueFree;
     }
 
     private void SpawnHitEffect()
