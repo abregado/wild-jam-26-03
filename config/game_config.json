@@ -67,7 +67,16 @@
     "shield_block_angle": 90.0,
     "drone_reposition_chance": 0.4,
     "drone_chase_distance": 20.0,
-    "drone_max_deployer_distance": 50.0
+    "drone_max_deployer_distance": 50.0,
+    "roof_turret_hitpoints": 30.0,
+    "roof_turret_fire_rate": 2.0,
+    "roof_turret_burst_count": 3,
+    "roof_turret_burst_interval": 4.0,
+    "roof_turret_bullet_speed": 30.0,
+    "roof_turret_hit_chance": 0.55,
+    "roof_turret_max_range": 35.0,
+    "roof_turret_repair_time": 12.0,
+    "roof_turret_reactivation_time": 5.0
   },
   "obstacles": {
     "section_min_duration": 4.0,

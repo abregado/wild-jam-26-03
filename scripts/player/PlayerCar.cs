@@ -57,6 +57,7 @@ public partial class PlayerCar : Node3D
     public bool CanSwitchUnder => _canSwitchUnder;
     public bool CanSwitchOver => _canSwitchOver;
     public bool IsOnRightSide => _onRightSide;
+    public bool IsFlippingUnder => _isSwitchingSides && _switchArcDir < 0;
 
     public override void _Ready()
     {

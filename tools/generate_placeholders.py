@@ -222,8 +222,9 @@ MODELS = {
     "projectiles/drone_bullet": ("sphere",   0.08),
 
     # shape        w     h     d
-    "enemies/deployer": ("box",      1.2,  0.4,  0.8),
-    "enemies/drone":    ("box",      0.8,  0.25, 0.8),
+    "enemies/deployer":     ("box",      1.2,  0.4,  0.8),
+    "enemies/drone":        ("box",      0.8,  0.25, 0.8),
+    "enemies/roof_turret":  ("box",      0.9,  0.9,  0.9),
 }
 
 

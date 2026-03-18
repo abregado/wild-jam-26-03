@@ -99,8 +99,8 @@ public partial class TrainBuilder : Node3D
 
             AttachContainers(carriageInstance, rng);
 
-            int numDeployers = rng.RandiRange(1, _config.MaxDeployersPerCarriage);
-            AttachDeployers(carriageInstance, numDeployers, zCenter, rng);
+            int numSlots = rng.RandiRange(1, _config.MaxDeployersPerCarriage);
+            AttachRoofSlots(carriageInstance, numSlots, rng);
 
             currentZ += CarriageLength + CarGap;
         }
@@ -116,8 +116,12 @@ public partial class TrainBuilder : Node3D
         // Deployers + activation signal wiring (done after all carriages are built)
         _playerCar ??= GetTree().Root.FindChild("PlayerCar", true, false) as PlayerCar;
         foreach (var carriage in _carriages)
+        {
             foreach (var deployer in carriage.Deployers)
                 deployer.SetPlayerCar(_playerCar);
+            foreach (var turret in carriage.RoofTurrets)
+                turret.SetPlayerCar(_playerCar);
+        }
         WireDeployerActivation();
 
         GD.Print($"[TrainBuilder] Built {numCarriages} carriages. LocomotiveZ={LocomotiveZ}, Containers={AllContainers.Count}");
@@ -127,7 +131,9 @@ public partial class TrainBuilder : Node3D
     {
         for (int i = 0; i < _carriages.Count; i++)
         {
-            if (_carriages[i].Deployers.Count == 0) continue;
+            bool hasRoofEnemies = _carriages[i].Deployers.Count > 0
+                                || _carriages[i].RoofTurrets.Count > 0;
+            if (!hasRoofEnemies) continue;
 
             // Connect containers/clamps from this carriage and direct neighbors.
             // NOTE: iterate GetChildren() directly — Carriage.Containers is populated in
@@ -137,6 +143,7 @@ public partial class TrainBuilder : Node3D
                 foreach (Node carriageChild in _carriages[j].GetChildren())
                 {
                     if (carriageChild is not ContainerNode container) continue;
+
                     foreach (var deployer in _carriages[i].Deployers)
                     {
                         container.DamageTaken += deployer.Activate;
@@ -144,6 +151,16 @@ public partial class TrainBuilder : Node3D
                         {
                             if (containerChild is ClampNode clamp)
                                 clamp.DamageTaken += deployer.Activate;
+                        }
+                    }
+
+                    foreach (var turret in _carriages[i].RoofTurrets)
+                    {
+                        container.DamageTaken += turret.Activate;
+                        foreach (Node containerChild in container.GetChildren())
+                        {
+                            if (containerChild is ClampNode clamp)
+                                clamp.DamageTaken += turret.Activate;
                         }
                     }
                 }
@@ -210,19 +227,35 @@ public partial class TrainBuilder : Node3D
         }
     }
 
-    private void AttachDeployers(Carriage carriage, int count, float carriageZCenter, RandomNumberGenerator rng)
+    /// <summary>
+    /// Fills up to <paramref name="count"/> roof slots with either a DeployerNode or a
+    /// RoofTurretNode chosen at random (50/50). Slots are evenly spaced along the carriage.
+    /// </summary>
+    private void AttachRoofSlots(Carriage carriage, int count, RandomNumberGenerator rng)
     {
         float spacing = CarriageLength / (count + 1);
         float localY = CarriageHeight / 2f + DeployerHeight / 2f;
 
         for (int i = 0; i < count; i++)
         {
-            var deployer = new DeployerNode();
-            deployer.Name = $"Deployer_{carriage.Name}_{i}";
             float zOffset = -CarriageLength / 2f + spacing * (i + 1);
-            deployer.Position = new Vector3(0f, localY, zOffset);
-            carriage.AddChild(deployer);
-            carriage.Deployers.Add(deployer);
+
+            if (rng.Randf() < 0.5f)
+            {
+                var deployer = new DeployerNode();
+                deployer.Name = $"Deployer_{carriage.Name}_{i}";
+                deployer.Position = new Vector3(0f, localY, zOffset);
+                carriage.AddChild(deployer);
+                carriage.Deployers.Add(deployer);
+            }
+            else
+            {
+                var turret = new RoofTurretNode();
+                turret.Name = $"RoofTurret_{carriage.Name}_{i}";
+                turret.Position = new Vector3(0f, localY, zOffset);
+                carriage.AddChild(turret);
+                carriage.RoofTurrets.Add(turret);
+            }
         }
     }
 

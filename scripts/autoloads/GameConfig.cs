@@ -75,6 +75,17 @@ public partial class GameConfig : Node
     public float DroneChaseDistance { get; private set; } = 20f;
     public float DroneMaxDeployerDistance { get; private set; } = 50f;
 
+    // Roof Turrets
+    public float RoofTurretHitpoints         { get; private set; } = 30f;
+    public float RoofTurretFireRate          { get; private set; } = 2.0f;
+    public int   RoofTurretBurstCount        { get; private set; } = 3;
+    public float RoofTurretBurstInterval     { get; private set; } = 4.0f;
+    public float RoofTurretBulletSpeed       { get; private set; } = 30.0f;
+    public float RoofTurretHitChance         { get; private set; } = 0.55f;
+    public float RoofTurretMaxRange          { get; private set; } = 35.0f;
+    public float RoofTurretRepairTime        { get; private set; } = 12.0f;
+    public float RoofTurretReactivationTime  { get; private set; } = 5.0f;
+
     // Obstacles
     public float ObstacleSectionMinDuration { get; private set; } = 12f;
     public float ObstacleSectionMaxDuration { get; private set; } = 25f;
@@ -214,6 +225,16 @@ public partial class GameConfig : Node
             DroneRepositionChance = GetFloat(en, "drone_reposition_chance", DroneRepositionChance);
             DroneChaseDistance = GetFloat(en, "drone_chase_distance", DroneChaseDistance);
             DroneMaxDeployerDistance = GetFloat(en, "drone_max_deployer_distance", DroneMaxDeployerDistance);
+
+            RoofTurretHitpoints        = GetFloat(en, "roof_turret_hitpoints",          RoofTurretHitpoints);
+            RoofTurretFireRate         = GetFloat(en, "roof_turret_fire_rate",           RoofTurretFireRate);
+            RoofTurretBurstCount       = GetInt  (en, "roof_turret_burst_count",         RoofTurretBurstCount);
+            RoofTurretBurstInterval    = GetFloat(en, "roof_turret_burst_interval",      RoofTurretBurstInterval);
+            RoofTurretBulletSpeed      = GetFloat(en, "roof_turret_bullet_speed",        RoofTurretBulletSpeed);
+            RoofTurretHitChance        = GetFloat(en, "roof_turret_hit_chance",          RoofTurretHitChance);
+            RoofTurretMaxRange         = GetFloat(en, "roof_turret_max_range",           RoofTurretMaxRange);
+            RoofTurretRepairTime       = GetFloat(en, "roof_turret_repair_time",         RoofTurretRepairTime);
+            RoofTurretReactivationTime = GetFloat(en, "roof_turret_reactivation_time",   RoofTurretReactivationTime);
         }
 
         if (data.TryGetValue("obstacles", out var obstaclesVar))

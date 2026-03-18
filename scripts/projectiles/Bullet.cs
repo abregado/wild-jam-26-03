@@ -113,6 +113,8 @@ public partial class Bullet : Node3D
                 }
                 else if (parent is DroneNode drone)
                     drone.TakeDamage(_damage);
+                else if (parent is RoofTurretNode roofTurret)
+                    roofTurret.TakeDamage(_damage);
             }
 
             GlobalPosition = hitPos;
