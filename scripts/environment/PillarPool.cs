@@ -19,15 +19,19 @@ public partial class PillarPool : Node3D
     private Node3D[] _pillars = System.Array.Empty<Node3D>();
     private PackedScene? _pillarScene;
     private float _spacing;
+    private float _xSpread;
     private float _despawnZ;
     private float _moveSpeed;
     private bool _initialized = false;
+    private readonly RandomNumberGenerator _rng = new();
 
     public override void _Ready()
     {
         var config = GetNode<GameConfig>("/root/GameConfig");
         _spacing   = config.PillarSpacing;
+        _xSpread   = config.PillarXSpread;
         _despawnZ  = -config.DespawnBehindDistance;
+        _rng.Randomize();
         _pillarScene = GD.Load<PackedScene>("res://assets/models/environment/pillar.glb");
     }
 
@@ -48,7 +52,7 @@ public partial class PillarPool : Node3D
                 ? CreatePillarFromGlb(_pillarScene)
                 : CreatePillarProcedural();
 
-            pillar.Position = new Vector3(0f, PillarY, spawnZ - i * _spacing);
+            pillar.Position = new Vector3(_rng.RandfRange(-_xSpread, _xSpread), PillarY, spawnZ - i * _spacing);
             AddChild(pillar);
             _pillars[i] = pillar;
         }
@@ -114,7 +118,7 @@ public partial class PillarPool : Node3D
                     if (p.Position.Z > maxZ) maxZ = p.Position.Z;
 
                 _pillars[i].Position = new Vector3(
-                    _pillars[i].Position.X,
+                    _rng.RandfRange(-_xSpread, _xSpread),
                     _pillars[i].Position.Y,
                     maxZ + _spacing
                 );

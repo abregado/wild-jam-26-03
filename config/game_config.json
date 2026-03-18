@@ -47,8 +47,24 @@
   },
   "environment": {
     "pillar_spacing": 20.0,
-    "spawn_ahead_distance": 40.0,
-    "despawn_behind_distance": 20.0
+    "pillar_x_spread": 0.0,
+    "spawn_ahead_distance": 200.0,
+    "despawn_behind_distance": 200.0,
+    "cloud_pool_size": 25,
+    "cloud_parallax_factor": 0.15,
+    "cloud_spawn_spread": 80.0,
+    "cloud_height_min": 25.0,
+    "cloud_height_max": 55.0,
+    "cloud_size_min": 3.0,
+    "cloud_size_max": 14.0,
+    "rock_pillar_spacing": 80.0,
+    "rock_pillar_distance": 80.0,
+    "rock_pillar_height_min": 8.0,
+    "rock_pillar_height_max": 30.0,
+    "rubble_pool_size": 245,
+    "rubble_spread": 80.0,
+    "rubble_size_min": 0.5,
+    "rubble_size_max": 2.4
   },
   "enemies": {
     "max_drones_per_deployer": 3,

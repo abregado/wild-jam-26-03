@@ -1,8 +1,11 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/environment/TrackEnvironment.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/environment/PillarPool.cs" id="2"]
 [ext_resource type="Shader" path="res://scripts/shaders/ground_scroll.gdshader" id="3"]
+[ext_resource type="Script" path="res://scripts/environment/CloudPool.cs" id="4"]
+[ext_resource type="Script" path="res://scripts/environment/RockPillarPool.cs" id="5"]
+[ext_resource type="Script" path="res://scripts/environment/RubblePool.cs" id="6"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(500.0, 1000.0)
@@ -63,3 +66,12 @@ shape = SubResource("BoxShape3D_Rail")
 
 [node name="PillarPool" type="Node3D" parent="."]
 script = ExtResource("2")
+
+[node name="CloudPool" type="Node3D" parent="."]
+script = ExtResource("4")
+
+[node name="RockPillarPool" type="Node3D" parent="."]
+script = ExtResource("5")
+
+[node name="RubblePool" type="Node3D" parent="."]
+script = ExtResource("6")

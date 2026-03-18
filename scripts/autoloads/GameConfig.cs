@@ -53,8 +53,30 @@ public partial class GameConfig : Node
 
     // Environment
     public float PillarSpacing { get; private set; } = 20f;
+    public float PillarXSpread { get; private set; } = 4f;
     public float SpawnAheadDistance { get; private set; } = 40f;
     public float DespawnBehindDistance { get; private set; } = 20f;
+
+    // Decoration — clouds
+    public int   CloudPoolSize       { get; private set; } = 25;
+    public float CloudParallaxFactor { get; private set; } = 0.15f;
+    public float CloudSpawnSpread    { get; private set; } = 80f;
+    public float CloudHeightMin      { get; private set; } = 25f;
+    public float CloudHeightMax      { get; private set; } = 55f;
+    public float CloudSizeMin        { get; private set; } = 3f;
+    public float CloudSizeMax        { get; private set; } = 14f;
+
+    // Decoration — rock pillars
+    public float RockPillarSpacing   { get; private set; } = 40f;
+    public float RockPillarDistance  { get; private set; } = 50f;
+    public float RockPillarHeightMin { get; private set; } = 8f;
+    public float RockPillarHeightMax { get; private set; } = 30f;
+
+    // Decoration — ground rubble
+    public int   RubblePoolSize      { get; private set; } = 45;
+    public float RubbleSpread        { get; private set; } = 35f;
+    public float RubbleSizeMin       { get; private set; } = 0.3f;
+    public float RubbleSizeMax       { get; private set; } = 1.4f;
 
     // Enemies
     public int MaxDronesPerDeployer { get; private set; } = 3;
@@ -201,8 +223,27 @@ public partial class GameConfig : Node
         {
             var e = envVar.AsGodotDictionary();
             PillarSpacing          = GetFloat(e, "pillar_spacing",           PillarSpacing);
+            PillarXSpread          = GetFloat(e, "pillar_x_spread",          PillarXSpread);
             SpawnAheadDistance     = GetFloat(e, "spawn_ahead_distance",     SpawnAheadDistance);
             DespawnBehindDistance  = GetFloat(e, "despawn_behind_distance",  DespawnBehindDistance);
+
+            CloudPoolSize       = GetInt  (e, "cloud_pool_size",        CloudPoolSize);
+            CloudParallaxFactor = GetFloat(e, "cloud_parallax_factor",  CloudParallaxFactor);
+            CloudSpawnSpread    = GetFloat(e, "cloud_spawn_spread",     CloudSpawnSpread);
+            CloudHeightMin      = GetFloat(e, "cloud_height_min",       CloudHeightMin);
+            CloudHeightMax      = GetFloat(e, "cloud_height_max",       CloudHeightMax);
+            CloudSizeMin        = GetFloat(e, "cloud_size_min",         CloudSizeMin);
+            CloudSizeMax        = GetFloat(e, "cloud_size_max",         CloudSizeMax);
+
+            RockPillarSpacing   = GetFloat(e, "rock_pillar_spacing",    RockPillarSpacing);
+            RockPillarDistance  = GetFloat(e, "rock_pillar_distance",   RockPillarDistance);
+            RockPillarHeightMin = GetFloat(e, "rock_pillar_height_min", RockPillarHeightMin);
+            RockPillarHeightMax = GetFloat(e, "rock_pillar_height_max", RockPillarHeightMax);
+
+            RubblePoolSize      = GetInt  (e, "rubble_pool_size",       RubblePoolSize);
+            RubbleSpread        = GetFloat(e, "rubble_spread",          RubbleSpread);
+            RubbleSizeMin       = GetFloat(e, "rubble_size_min",        RubbleSizeMin);
+            RubbleSizeMax       = GetFloat(e, "rubble_size_max",        RubbleSizeMax);
         }
 
         if (data.TryGetValue("enemies", out var enemiesVar))
