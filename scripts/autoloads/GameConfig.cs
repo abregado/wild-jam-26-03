@@ -42,6 +42,8 @@ public partial class GameConfig : Node
     public float CarAcceleration { get; private set; } = 5f;
     public float CarDeceleration { get; private set; } = 8f;
     public float SideChangeTime { get; private set; } = 1.5f;
+    public float CarDriveHeight { get; private set; } = 9.0f;
+    public int NumberPreScannedContainers { get; private set; } = 0;
 
     // Speed
     public float BaseTrainSpeed { get; private set; } = 15f;
@@ -164,11 +166,13 @@ public partial class GameConfig : Node
         if (data.TryGetValue("player", out var playerVar))
         {
             var p = playerVar.AsGodotDictionary();
-            MinRelativeVelocity = GetFloat(p, "min_relative_velocity", MinRelativeVelocity);
-            MaxRelativeVelocity = GetFloat(p, "max_relative_velocity", MaxRelativeVelocity);
-            CarAcceleration = GetFloat(p, "car_acceleration", CarAcceleration);
-            CarDeceleration = GetFloat(p, "car_deceleration", CarDeceleration);
-            SideChangeTime = GetFloat(p, "side_change_time", SideChangeTime);
+            MinRelativeVelocity         = GetFloat(p, "min_relative_velocity",          MinRelativeVelocity);
+            MaxRelativeVelocity         = GetFloat(p, "max_relative_velocity",          MaxRelativeVelocity);
+            CarAcceleration             = GetFloat(p, "car_acceleration",               CarAcceleration);
+            CarDeceleration             = GetFloat(p, "car_deceleration",               CarDeceleration);
+            SideChangeTime              = GetFloat(p, "side_change_time",               SideChangeTime);
+            CarDriveHeight              = GetFloat(p, "car_drive_height",               CarDriveHeight);
+            NumberPreScannedContainers  = GetInt  (p, "number_pre_scanned_containers",  NumberPreScannedContainers);
         }
 
         if (data.TryGetValue("speed", out var speedVar))
@@ -296,7 +300,8 @@ public partial class GameConfig : Node
             case "rate_of_fire":             RateOfFire            += v; break;
             case "bullet_speed":             BulletSpeed           += v; break;
             case "beacon_reload_speed":      BeaconReloadSpeed     += v; break;
-            case "max_relative_velocity":    MaxRelativeVelocity   += v; break;
+            case "max_relative_velocity":             MaxRelativeVelocity          += v; break;
+            case "number_pre_scanned_containers":     NumberPreScannedContainers    = Mathf.Max(0, NumberPreScannedContainers + (int)v); break;
             case "blast_radius":             BlastRadius           += v; break;
             case "shield_block_angle":       ShieldBlockAngle      += v; break;
             case "car_speed_damage_per_hit": CarSpeedDamagePerHit  += v; break;
@@ -315,6 +320,7 @@ public partial class GameConfig : Node
             case "bullet_speed":             BulletSpeed           *= m; break;
             case "beacon_reload_speed":      BeaconReloadSpeed     *= m; break;
             case "max_relative_velocity":    MaxRelativeVelocity   *= m; break;
+            case "car_drive_height":         CarDriveHeight        *= m; break;
             case "blast_radius":             BlastRadius           *= m; break;
             case "shield_block_angle":       ShieldBlockAngle      *= m; break;
             case "car_speed_damage_per_hit": CarSpeedDamagePerHit  *= m; break;

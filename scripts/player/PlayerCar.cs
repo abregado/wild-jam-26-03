@@ -19,7 +19,7 @@ using Godot;
 public partial class PlayerCar : Node3D
 {
     public const float XOffset = 8.0f;
-    public const float YHeight = 9.0f;
+    public float YHeight { get; private set; } = 9.0f;
 
     private float _relativeVelocity;
     private float _pitch;
@@ -64,6 +64,7 @@ public partial class PlayerCar : Node3D
         _tsm = GetNode<TrainSpeedManager>("/root/TrainSpeedManager");
         _camera = GetNode<Camera3D>("Camera3D");
         _turret = GetNode<Turret>("Turret");
+        YHeight = _config.CarDriveHeight;
 
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
         _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;

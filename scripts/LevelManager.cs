@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 /// <summary>
 /// Manages level end condition.
@@ -41,9 +42,15 @@ public partial class LevelManager : Node
 
         // Position player near the front of the locomotive at start
         float startZ = _trainBuilder.LocomotiveZ - 4f;
-        _playerCar.Position = new Vector3(PlayerCar.XOffset, PlayerCar.YHeight, startZ);
+        _playerCar.Position = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, startZ);
         _playerCar.SetTrainFrontZ(_trainBuilder.LocomotiveZ);
         GD.Print($"[LevelManager] LocomotiveZ={_trainBuilder.LocomotiveZ}, CabooseZ={_trainBuilder.CabooseZ}, PlayerStart Z={startZ}");
+
+        // Pre-scan N random containers at the start of the raid
+        var config = GetNode<GameConfig>("/root/GameConfig");
+        int preScanCount = config.NumberPreScannedContainers;
+        if (preScanCount > 0)
+            PreScanContainers(preScanCount);
     }
 
     public override void _Process(double delta)
@@ -88,6 +95,28 @@ public partial class LevelManager : Node
             if (_zoomTimer <= 0f)
                 EndLevel();
         }
+    }
+
+    private void PreScanContainers(int count)
+    {
+        // Build list of taggable (non-locked) containers and shuffle it
+        var taggable = new List<ContainerNode>();
+        foreach (var c in _trainBuilder.AllContainers)
+            if (!c.IsLocked) taggable.Add(c);
+
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
+        for (int i = taggable.Count - 1; i > 0; i--)
+        {
+            int j = rng.RandiRange(0, i);
+            (taggable[i], taggable[j]) = (taggable[j], taggable[i]);
+        }
+
+        int toTag = Mathf.Min(count, taggable.Count);
+        for (int i = 0; i < toTag; i++)
+            taggable[i].Tag();
+
+        GD.Print($"[LevelManager] Pre-scanned {toTag} container(s).");
     }
 
     private void StartWarning()

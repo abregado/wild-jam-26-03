@@ -587,6 +587,7 @@ public partial class UpgradeCard : PanelContainer
         ["blast_radius"]             = ("Blast Radius",     true),
         ["shield_block_angle"]       = ("Shield Angle",     true),
         ["car_speed_damage_per_hit"] = ("Speed Dmg / Hit",  false),   // lower = less damage taken
+        ["number_pre_scanned_containers"] = ("Pre-Scanned Containers",  true),
     };
 
     private static readonly Color ColGood = new Color(0.3f, 1f, 0.45f);

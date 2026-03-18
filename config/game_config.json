@@ -35,7 +35,9 @@
     "max_relative_velocity": 10.0,
     "car_acceleration": 5.0,
     "car_deceleration": 8.0,
-    "side_change_time": 3.5
+    "side_change_time": 3.5,
+    "car_drive_height": 8.0,
+    "number_pre_scanned_containers": 0
   },
   "speed": {
     "base_train_speed": 15.0,
@@ -313,6 +315,42 @@
         { "stat": "burst_count",   "flat": 2         }
       ],
       "cost": { "Weapons": 3 } },
+
+    { "id": "intel_drop",
+      "name": "Intel Drop",
+      "description": "1 container pre-scanned, but −8 turret damage.",
+      "modifiers": [
+        { "stat": "number_pre_scanned_containers", "flat": 1   },
+        { "stat": "turret_damage",                 "flat": -8.0 }
+      ],
+      "cost": { "Credits": 1 } },
+
+    { "id": "cargo_manifest",
+      "name": "Cargo Manifest",
+      "description": "1 container pre-scanned, but burst timing +0.025s slower.",
+      "modifiers": [
+        { "stat": "number_pre_scanned_containers", "flat":  1      },
+        { "stat": "burst_delay",                   "flat":  0.025  }
+      ],
+      "cost": { "Electronics": 1 } },
+
+    { "id": "recon_scan",
+      "name": "Recon Scan",
+      "description": "1 container pre-scanned, but −2 max forward speed.",
+      "modifiers": [
+        { "stat": "number_pre_scanned_containers", "flat":  1    },
+        { "stat": "max_relative_velocity",         "flat": -2.0  }
+      ],
+      "cost": { "Chemicals": 1 } },
+
+    { "id": "signal_lock",
+      "name": "Signal Lock",
+      "description": "1 container pre-scanned, but −0.5 rate of fire.",
+      "modifiers": [
+        { "stat": "number_pre_scanned_containers", "flat":  1    },
+        { "stat": "rate_of_fire",                  "flat": -0.5  }
+      ],
+      "cost": { "Weapons": 1 } },
 
     { "id": "ghost_protocol",
       "name": "Ghost Protocol",
