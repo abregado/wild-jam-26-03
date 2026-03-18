@@ -5,15 +5,17 @@ public enum ZoneType { LeftCliff, RightCliff, Roof, Plateau }
 /// <summary>
 /// Pooled cube obstacles per zone. Four instances sit under ObstacleSystem in Main.tscn.
 ///
-/// Streaming model:
-///   Active   — cubes are visible and continuously recycled: when one passes the despawn
-///              threshold it teleports to spawnZ (ahead of locomotive).
-///   Draining — zone deactivated; cubes keep moving and become invisible as they pass the
-///              despawn threshold, rather than being immediately hidden.
-///   Idle     — all cubes invisible, ready for the next activation.
+/// Streaming model — cubes spawn one at a time from ahead of the locomotive:
+///   Streaming  — IsZoneActive() true (active section OR matching warning): a new cube is placed
+///                at spawnZ whenever the front of the stream has moved far enough back. Cubes that
+///                pass despawnZ are parked and re-used when next needed at the front.
+///   Draining   — IsZoneActive() false: no new spawns. In-stream cubes keep moving and park
+///                themselves when they pass despawnZ. Section ends naturally — no instant hide.
 ///
-/// Pool size is computed dynamically on first _Process to cover the full
-/// locomotive-ahead → caboose-behind range.
+/// IsZoneActive() returns true during BOTH the active phase AND the warning phase for this zone,
+/// so obstacles visually approach the player before the section formally activates.
+///
+/// Pool is sized dynamically on first _Process to cover locoZ+spawnAhead → despawnBehind.
 /// </summary>
 public partial class ObstaclePool : Node3D
 {
@@ -31,7 +33,6 @@ public partial class ObstaclePool : Node3D
 
     private float _locoZ;
     private float _despawnZ;
-    private bool _wasActive = false;
     private bool _initialized = false;
 
     // Desert brown palette
@@ -66,27 +67,29 @@ public partial class ObstaclePool : Node3D
         int computed     = Mathf.CeilToInt(totalRange / _config.ObstacleCubeSpacing) + 2;
         int poolSize     = Mathf.Max(_config.ObstacleCubePoolSize, computed);
 
-        float zoneWidth  = GetZoneWidth();
         _cubes       = new MeshInstance3D[poolSize];
         _cubeMeshes  = new BoxMesh[poolSize];
         _cubeInStream = new bool[poolSize];
+
+        float zoneWidth = GetZoneWidth();
+        float spacing   = _config.ObstacleCubeSpacing;
 
         for (int i = 0; i < poolSize; i++)
         {
             float height = GetRandomHeight();
             var boxMesh = new BoxMesh
             {
-                Size     = new Vector3(zoneWidth, height, _config.ObstacleCubeSpacing * 0.85f),
+                Size     = new Vector3(zoneWidth, height, spacing * 0.85f),
                 Material = _materials[_rng.RandiRange(0, _materials.Length - 1)],
             };
             _cubeMeshes[i] = boxMesh;
 
+            // All cubes start parked far ahead, invisible
             var inst = new MeshInstance3D
             {
-                Mesh    = boxMesh,
-                Visible = false,
-                // Parked far ahead, out of sight until section activates
-                Position = new Vector3(GetZoneX(), GetZoneY(height), spawnZ + i * _config.ObstacleCubeSpacing),
+                Mesh     = boxMesh,
+                Visible  = false,
+                Position = new Vector3(GetZoneX(), GetZoneY(height), spawnZ + (i + 1) * spacing),
             };
             AddChild(inst);
             _cubes[i] = inst;
@@ -100,16 +103,12 @@ public partial class ObstaclePool : Node3D
     {
         if (!_initialized) { Initialize(); return; }
 
-        bool isActive = IsZoneActive();
-        float dt      = (float)delta;
-        float spacing = _config.ObstacleCubeSpacing;
-        float spawnZ  = _locoZ + _config.SpawnAheadDistance;
+        bool streaming = IsZoneActive();
+        float dt       = (float)delta;
+        float spacing  = _config.ObstacleCubeSpacing;
+        float spawnZ   = _locoZ + _config.SpawnAheadDistance;
 
-        // Detect activation edge: place all cubes into the stream
-        if (isActive && !_wasActive)
-            PlaceAllCubesIntoStream(spawnZ, spacing);
-        _wasActive = isActive;
-
+        // Move all in-stream cubes; park them when they pass the despawn threshold
         for (int i = 0; i < _cubes.Length; i++)
         {
             if (!_cubeInStream[i]) continue;
@@ -119,62 +118,67 @@ public partial class ObstaclePool : Node3D
 
             if (pos.Z < _despawnZ)
             {
-                if (isActive)
-                {
-                    // Recycle: place ahead of the furthest cube
-                    float maxZ = GetMaxStreamZ();
-                    float newHeight = GetRandomHeight();
-                    _cubeMeshes[i].Size = new Vector3(GetZoneWidth(), newHeight, spacing * 0.85f);
-                    _cubeMeshes[i].Material = _materials[_rng.RandiRange(0, _materials.Length - 1)];
-                    pos.Z = maxZ + spacing;
-                    pos.Y = GetZoneY(newHeight);
-                }
-                else
-                {
-                    // Drain: hide and park
-                    _cubeInStream[i] = false;
-                    _cubes[i].Visible = false;
-                    pos = new Vector3(GetZoneX(), _cubes[i].Position.Y,
-                                      spawnZ + i * spacing); // park out of sight
-                }
+                // Park — whether streaming or draining, park and let the front-spawn refill if needed
+                _cubeInStream[i]  = false;
+                _cubes[i].Visible = false;
+                _cubes[i].Position = new Vector3(GetZoneX(), _cubes[i].Position.Y, spawnZ + 100f);
+                continue;
             }
 
             _cubes[i].Position = pos;
         }
-    }
 
-    private void PlaceAllCubesIntoStream(float spawnZ, float spacing)
-    {
-        for (int i = 0; i < _cubes.Length; i++)
+        // While streaming: emit one cube from spawnZ whenever the front has a gap
+        if (streaming)
         {
-            float height = GetRandomHeight();
-            _cubeMeshes[i].Size = new Vector3(GetZoneWidth(), height, spacing * 0.85f);
-            _cubeMeshes[i].Material = _materials[_rng.RandiRange(0, _materials.Length - 1)];
-
-            float z = spawnZ - i * spacing;
-            _cubes[i].Position = new Vector3(GetZoneX(), GetZoneY(height), z);
-            _cubes[i].Visible  = z >= _despawnZ; // only show if above despawn line
-            _cubeInStream[i]   = true;
+            float frontZ = GetFrontStreamZ();
+            // frontZ == float.MinValue means no cubes in stream at all
+            if (frontZ < spawnZ - spacing)
+            {
+                int idx = FindParkedCube();
+                if (idx >= 0)
+                {
+                    float height = GetRandomHeight();
+                    _cubeMeshes[idx].Size     = new Vector3(GetZoneWidth(), height, spacing * 0.85f);
+                    _cubeMeshes[idx].Material = _materials[_rng.RandiRange(0, _materials.Length - 1)];
+                    _cubes[idx].Position  = new Vector3(GetZoneX(), GetZoneY(height), spawnZ);
+                    _cubes[idx].Visible   = true;
+                    _cubeInStream[idx]    = true;
+                }
+            }
         }
     }
 
-    private float GetMaxStreamZ()
+    // Returns true during the active phase AND during the warning phase for this zone,
+    // so cubes begin streaming before the section formally activates.
+    private bool IsZoneActive() => Zone switch
+    {
+        ZoneType.LeftCliff  => _om.ActiveCliffSide == CliffSide.Left
+                            || (_om.IsInWarning && _om.UpcomingCliffSide == CliffSide.Left),
+        ZoneType.RightCliff => _om.ActiveCliffSide == CliffSide.Right
+                            || (_om.IsInWarning && _om.UpcomingCliffSide == CliffSide.Right),
+        ZoneType.Roof       => _om.ActiveMovementLimit == MovementLimit.Roof
+                            || (_om.IsInWarning && _om.UpcomingMovementLimit == MovementLimit.Roof),
+        ZoneType.Plateau    => _om.ActiveMovementLimit == MovementLimit.Plateau
+                            || (_om.IsInWarning && _om.UpcomingMovementLimit == MovementLimit.Plateau),
+        _                   => false,
+    };
+
+    private float GetFrontStreamZ()
     {
         float maxZ = float.MinValue;
         for (int i = 0; i < _cubes.Length; i++)
             if (_cubeInStream[i] && _cubes[i].Position.Z > maxZ)
                 maxZ = _cubes[i].Position.Z;
-        return maxZ == float.MinValue ? _locoZ + _config.SpawnAheadDistance : maxZ;
+        return maxZ;
     }
 
-    private bool IsZoneActive() => Zone switch
+    private int FindParkedCube()
     {
-        ZoneType.LeftCliff  => _om.ActiveCliffSide == CliffSide.Left,
-        ZoneType.RightCliff => _om.ActiveCliffSide == CliffSide.Right,
-        ZoneType.Roof       => _om.ActiveMovementLimit == MovementLimit.Roof,
-        ZoneType.Plateau    => _om.ActiveMovementLimit == MovementLimit.Plateau,
-        _                   => false,
-    };
+        for (int i = 0; i < _cubes.Length; i++)
+            if (!_cubeInStream[i]) return i;
+        return -1;
+    }
 
     private float GetZoneX() => Zone switch
     {

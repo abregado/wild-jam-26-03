@@ -68,8 +68,6 @@ public partial class PlayerCar : Node3D
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
         _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;
         _obstacleManager = GetNodeOrNull<ObstacleManager>("/root/ObstacleManager");
-        if (_obstacleManager != null)
-            _obstacleManager.SectionActivated += OnObstacleSectionActivated;
 
         _shield = new Shield();
         AddChild(_shield);
@@ -184,15 +182,34 @@ public partial class PlayerCar : Node3D
         // Update pole-clearance check every frame for HUD
         _canSwitchUnder = !_isSwitchingSides && PredictUnderArcClear();
 
-        // Obstacle manager overrides
-        bool anyCliff  = _obstacleManager != null && _obstacleManager.ActiveCliffSide != CliffSide.None;
-        bool roofUp    = _obstacleManager != null && _obstacleManager.ActiveMovementLimit == MovementLimit.Roof;
-        bool plateauUp = _obstacleManager != null && _obstacleManager.ActiveMovementLimit == MovementLimit.Plateau;
+        // Obstacle overrides — active state takes priority; warning state applies next
+        GetEffectiveObstacleState(out CliffSide effCliff, out MovementLimit effLimit);
+        bool anyCliff  = effCliff != CliffSide.None;
+        bool roofUp    = effLimit == MovementLimit.Roof;
+        bool plateauUp = effLimit == MovementLimit.Plateau;
         _canSwitchOver = !anyCliff && !roofUp;
         if (anyCliff || plateauUp)
             _canSwitchUnder = false;
 
-        // Trigger side switch
+        // Every frame: if the car is on the cliff side or mid-arc toward it, force a safe switch
+        if (anyCliff && _inputEnabled)
+        {
+            bool willEndOnRight = _isSwitchingSides ? !_onRightSide : _onRightSide;
+            bool onCliffSide    = (effCliff == CliffSide.Right &&  willEndOnRight)
+                               || (effCliff == CliffSide.Left  && !willEndOnRight);
+            if (onCliffSide)
+            {
+                // Abort any in-progress switch and snap arc back to the starting side
+                _isSwitchingSides = false;
+                _switchProgress   = 0f;
+                int safeDir = (effLimit == MovementLimit.Roof)    ? -1   // roof → go under
+                            : (effLimit == MovementLimit.Plateau)  ? +1   // plateau → go over
+                            : +1;                                         // default: go over
+                StartSideSwitch(safeDir);
+            }
+        }
+
+        // Trigger side switch (player input)
         if (!_isSwitchingSides)
         {
             if (Input.IsActionJustPressed("switch_side_over") && _canSwitchOver)
@@ -254,22 +271,22 @@ public partial class PlayerCar : Node3D
             && !_pillarPool.HasPillarNearZ(targetZ2, PillarCollisionRadius);
     }
 
-    private void OnObstacleSectionActivated(long cliffL, long limitL)
+    /// <summary>
+    /// Active state takes priority over warning. Returns None/None when no manager or no section.
+    /// </summary>
+    private void GetEffectiveObstacleState(out CliffSide cliff, out MovementLimit limit)
     {
-        var cliff = (CliffSide)cliffL;
-        var limit = (MovementLimit)limitL;
+        cliff = CliffSide.None;
+        limit = MovementLimit.None;
+        if (_obstacleManager == null) return;
 
-        if (_isSwitchingSides || cliff == CliffSide.None) return;
+        cliff = _obstacleManager.ActiveCliffSide != CliffSide.None
+            ? _obstacleManager.ActiveCliffSide
+            : _obstacleManager.IsInWarning ? _obstacleManager.UpcomingCliffSide : CliffSide.None;
 
-        bool wrongSide = (cliff == CliffSide.Right &&  _onRightSide)
-                      || (cliff == CliffSide.Left  && !_onRightSide);
-        if (!wrongSide) return;
-
-        // Pick safe arc direction based on what's blocked
-        int dir = (limit == MovementLimit.Roof)    ? -1  // can't go over → go under
-                : (limit == MovementLimit.Plateau)  ? +1  // can't go under → go over
-                : (_canSwitchUnder ? -1 : +1);            // prefer under, fall back over
-        StartSideSwitch(dir);
+        limit = _obstacleManager.ActiveMovementLimit != MovementLimit.None
+            ? _obstacleManager.ActiveMovementLimit
+            : _obstacleManager.IsInWarning ? _obstacleManager.UpcomingMovementLimit : MovementLimit.None;
     }
 
     private void StartSideSwitch(int direction)

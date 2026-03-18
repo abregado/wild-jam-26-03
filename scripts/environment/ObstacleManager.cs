@@ -4,8 +4,12 @@ public enum CliffSide { None, Left, Right }
 public enum MovementLimit { None, Roof, Plateau }
 
 /// <summary>
-/// Autoload singleton. Runs a state machine: Clear → Warning → Active → Clear.
-/// Exposes current and upcoming obstacle state for PlayerCar, HUD, Deployer, Drone.
+/// Autoload singleton. Runs a continuous loop: Startup → Warning → Active → Warning → Active → ...
+/// There is no idle gap between sections — as soon as one section ends, the next warning begins.
+/// "Empty" sections (no cliff, no limit) are valid and produce no obstacle cubes.
+///
+/// ObstaclePool polls IsInWarning + Upcoming* to start streaming cubes during the warning period,
+/// so obstacles visually approach the player before the section becomes active.
 /// </summary>
 public partial class ObstacleManager : Node
 {
@@ -22,9 +26,9 @@ public partial class ObstacleManager : Node
     private GameConfig _config = null!;
     private RandomNumberGenerator _rng = new();
 
-    private enum Phase { Clear, Warning, Active }
-    private Phase _phase = Phase.Clear;
-    private float _phaseTimer = 8f; // initial delay before first warning
+    private enum Phase { Startup, Warning, Active }
+    private Phase _phase = Phase.Startup;
+    private float _phaseTimer = 8f; // initial pause before first warning
 
     public override void _Ready()
     {
@@ -38,7 +42,7 @@ public partial class ObstacleManager : Node
 
         switch (_phase)
         {
-            case Phase.Clear:
+            case Phase.Startup:
                 if (_phaseTimer <= 0f)
                     StartWarning();
                 break;
@@ -50,7 +54,7 @@ public partial class ObstacleManager : Node
 
             case Phase.Active:
                 if (_phaseTimer <= 0f)
-                    ClearSection();
+                    EndSection();
                 break;
         }
     }
@@ -75,17 +79,13 @@ public partial class ObstacleManager : Node
         GD.Print($"[ObstacleManager] Active: {ActiveCliffSide} + {ActiveMovementLimit} for {_phaseTimer:F1}s");
     }
 
-    private void ClearSection()
+    private void EndSection()
     {
         ActiveCliffSide = CliffSide.None;
         ActiveMovementLimit = MovementLimit.None;
-        IsInWarning = false;
-        _phase = Phase.Clear;
-        _phaseTimer = _rng.RandfRange(
-            _config.ObstacleSectionMinDuration * 0.5f,
-            _config.ObstacleSectionMaxDuration * 0.5f);
         EmitSignal(SignalName.SectionCleared);
-        GD.Print($"[ObstacleManager] Cleared. Next warning in {_phaseTimer:F1}s");
+        GD.Print("[ObstacleManager] Section ended → starting next warning immediately.");
+        StartWarning(); // no idle gap — roll and warn for next section right away
     }
 
     private (CliffSide cliff, MovementLimit limit) RollNextSection()
@@ -103,11 +103,6 @@ public partial class ObstacleManager : Node
         if (r2 < 0.3f)      limit = MovementLimit.Roof;
         else if (r2 < 0.6f) limit = MovementLimit.Plateau;
         else                 limit = MovementLimit.None;
-
-        // Guard: if cliff forces a switch, ensure at least one arc direction is open.
-        // Roof blocks over-arc, Plateau blocks under-arc.
-        // With only one limit active at a time this is always fine — both arcs can't be
-        // simultaneously blocked by a single limit value. No additional guard needed.
 
         return (cliff, limit);
     }
