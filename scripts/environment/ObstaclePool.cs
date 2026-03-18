@@ -236,12 +236,15 @@ public partial class ObstaclePool : Node3D
         return -1;
     }
 
-    private float GetZoneX() => Zone switch
+    // Inner edge of cliff wall = half carriage width (1.5) + 1.5× container width (2.0) = 4.5
+    private const float CliffInnerEdge = 1.5f + 1.5f * 2.0f;
+
+    private float GetZoneX()
     {
-        ZoneType.LeftCliff  => -5.5f,
-        ZoneType.RightCliff =>  5.5f,
-        _                   =>  0f,
-    };
+        if (Zone == ZoneType.RightCliff) return  CliffInnerEdge + _config.CliffCubeWidth * 0.5f;
+        if (Zone == ZoneType.LeftCliff)  return -(CliffInnerEdge + _config.CliffCubeWidth * 0.5f);
+        return 0f;
+    }
 
     private float GetZoneY(float height) => Zone switch
     {
@@ -261,7 +264,7 @@ public partial class ObstaclePool : Node3D
 
     private float GetZoneWidth() => Zone switch
     {
-        ZoneType.LeftCliff  or ZoneType.RightCliff => 3f,
+        ZoneType.LeftCliff  or ZoneType.RightCliff => _config.CliffCubeWidth,
         ZoneType.Roof       or ZoneType.Plateau    => 14f,
         _                                          => 3f,
     };

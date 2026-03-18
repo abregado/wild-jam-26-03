@@ -81,6 +81,7 @@ public partial class GameConfig : Node
     public float ObstacleWarningTime { get; private set; } = 4f;
     public int ObstacleCubePoolSize { get; private set; } = 12;
     public float ObstacleCubeSpacing { get; private set; } = 6f;
+    public float CliffCubeWidth { get; private set; } = 9f;
 
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
@@ -223,6 +224,7 @@ public partial class GameConfig : Node
             ObstacleWarningTime        = GetFloat(o, "warning_time",         ObstacleWarningTime);
             ObstacleCubePoolSize       = GetInt  (o, "cube_pool_size",       ObstacleCubePoolSize);
             ObstacleCubeSpacing        = GetFloat(o, "cube_spacing",         ObstacleCubeSpacing);
+            CliffCubeWidth             = GetFloat(o, "cliff_cube_width",     CliffCubeWidth);
         }
 
         if (data.TryGetValue("cargo_types", out var cargoVar))

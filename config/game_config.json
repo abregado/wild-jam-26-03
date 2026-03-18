@@ -35,10 +35,10 @@
     "max_relative_velocity": 10.0,
     "car_acceleration": 5.0,
     "car_deceleration": 8.0,
-    "side_change_time": 3.5,
+    "side_change_time": 2.5,
     "car_drive_height": 8.0,
     "number_pre_scanned_containers": 0,
-    "cliff_detection_distance": 6.0
+    "cliff_detection_distance": 21.0
   },
   "speed": {
     "base_train_speed": 15.0,
@@ -74,7 +74,8 @@
     "section_max_duration": 8.0,
     "warning_time": 4.0,
     "cube_pool_size": 12,
-    "cube_spacing": 6.0
+    "cube_spacing": 6.0,
+    "cliff_cube_width": 9.0
   },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },

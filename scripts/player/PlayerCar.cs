@@ -102,6 +102,15 @@ public partial class PlayerCar : Node3D
         if (Input.MouseMode != Input.MouseModeEnum.Captured) return;
         if (!_inputEnabled) return;
 
+        if (@event is InputEventKey key2 && key2.Pressed && !key2.Echo
+            && key2.Keycode == Key.Ctrl)
+        {
+            if (_canSwitchUnder && !_isSwitchingSides)
+                StartSideSwitch(-1);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event is InputEventMouseMotion motion)
         {
             _lookYaw -= motion.Relative.X * 0.25f;
@@ -201,8 +210,6 @@ public partial class PlayerCar : Node3D
         {
             if (Input.IsActionJustPressed("switch_side_over") && _canSwitchOver)
                 StartSideSwitch(+1);
-            else if (Input.IsActionJustPressed("switch_side_under") && _canSwitchUnder)
-                StartSideSwitch(-1);
         }
 
         float newZ = Position.Z + _relativeVelocity * dt;
@@ -295,11 +302,9 @@ public partial class PlayerCar : Node3D
 
         if (result.Count == 0) return;
 
-        // Hit a cliff wall — pick a safe arc direction
-        int dir = limit == MovementLimit.Roof    ? -1   // can't go over → go under
-                : limit == MovementLimit.Plateau  ? +1   // can't go under → go over
-                : _canSwitchUnder                 ? -1   // prefer under
-                :                                   +1;  // fall back over
+        // Hit a cliff wall — pick a safe arc direction; pillar blocking is ignored for forced switches
+        int dir = limit == MovementLimit.Plateau ? +1   // plateau blocks under → go over
+                :                                  -1;  // default under (Roof or unconstrained)
         StartSideSwitch(dir);
     }
 
