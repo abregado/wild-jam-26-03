@@ -11,9 +11,11 @@ using Godot;
 /// Camera default: faces -X (toward train). PlayerCar starts at rotation.y = 90.
 /// Mouse X = yaw (rotates whole car on Y). Mouse Y = pitch (camera only, clamped ±60°).
 ///
-/// W = move toward locomotive (increase Z).
-/// S = move toward caboose (decrease Z).
-/// </summary>
+/// WASD accelerate/decelerate based on camera direction projected onto the train Z axis.
+/// W/S use the camera's forward vector; A/D use the camera's right vector.
+/// e.g. looking toward the locomotive: W = full accelerate, S = full decelerate.
+/// Looking at the train side: A = accelerate, D = decelerate (or opposite when facing away).
+///</summary>
 public partial class PlayerCar : Node3D
 {
     public const float XOffset = 8.0f;
@@ -142,13 +144,25 @@ public partial class PlayerCar : Node3D
         float accel = _config.CarAcceleration;
         float decel = _config.CarDeceleration;
 
-        bool goForward = Input.IsActionPressed("move_forward");
-        bool goBack    = Input.IsActionPressed("move_backward");
+        // Project camera axes onto the train Z axis (+Z = toward locomotive).
+        // wsFactor: how much W/S aligns with train forward.
+        // adFactor: how much D/A aligns with train forward.
+        var camBasis = _camera.GlobalTransform.Basis;
+        float wsFactor = -camBasis.Z.Z;   // camera forward = -Basis.Z
+        float adFactor =  camBasis.X.Z;   // camera right  = +Basis.X
 
-        if (goForward)
-            _relativeVelocity += accel * dt;
-        else if (goBack)
-            _relativeVelocity -= decel * dt;
+        float inputAxis = 0f;
+        if (Input.IsActionPressed("move_forward"))  inputAxis += wsFactor;
+        if (Input.IsActionPressed("move_backward")) inputAxis -= wsFactor;
+        if (Input.IsActionPressed("move_right"))    inputAxis += adFactor;
+        if (Input.IsActionPressed("move_left"))     inputAxis -= adFactor;
+        inputAxis = Mathf.Clamp(inputAxis, -1f, 1f);
+
+        if (Mathf.Abs(inputAxis) > 0.01f)
+        {
+            float rate = inputAxis > 0f ? accel : decel;
+            _relativeVelocity += inputAxis * rate * dt;
+        }
         else
         {
             float drag = decel * dt;
