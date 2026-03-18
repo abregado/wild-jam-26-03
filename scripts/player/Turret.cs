@@ -48,7 +48,8 @@ public partial class Turret : Node3D
     private PackedScene _bulletScene = null!;
     private PackedScene _beaconScene = null!;
 
-    private Vector3 _turretTargetPoint;
+    private Vector3    _turretTargetPoint;
+    private Quaternion _turretQuat = Quaternion.Identity;  // stable rotation accumulator
 
     // ── Debug ─────────────────────────────────────────────────────────────────
     [Export] public bool DebugTracking { get; set; } = false;
@@ -80,6 +81,8 @@ public partial class Turret : Node3D
 
         SetupTurretDot();
         SetupMuzzleFlash();
+
+        _turretQuat = GlobalTransform.Basis.GetRotationQuaternion();
 
         if (DebugTracking)
             SetupDebugLabel();
@@ -151,40 +154,33 @@ public partial class Turret : Node3D
         if (_turretDot.IsInsideTree())
             _turretDot.GlobalPosition = _turretTargetPoint;
 
-        // 2. Slerp turret rotation toward camera's forward direction.
-        //    When fully tracked, turret -Z == camera forward == screen centre == crosshair.
+        // 2. Slerp turret toward camera forward.
+        //    We accumulate rotation in _turretQuat (never read back GlobalTransform.Basis)
+        //    so floating-point drift in the matrix can't feed into the next Slerp.
         var cameraForward = -_camera.GlobalTransform.Basis.Z;
-        // Clamp how far down the turret can pitch.
         float minY = -Mathf.Sin(Mathf.DegToRad(_config.TurretMaxPitchDown));
         if (cameraForward.Y < minY)
             cameraForward = new Vector3(cameraForward.X, minY, cameraForward.Z).Normalized();
 
         float fwdLen2  = cameraForward.LengthSquared();
-        float dotUp    = cameraForward.Dot(Vector3.Up);   // near ±1 → gimbal danger
-        bool  basisNaN = float.IsNaN(GlobalTransform.Basis.X.X);
+        float dotUp    = cameraForward.Dot(Vector3.Up);
+        bool  canTrack = fwdLen2 > 0.25f && Mathf.Abs(dotUp) < 0.99f;
 
         if (DebugTracking && _debugLabel != null && _debugLabel.IsInsideTree())
         {
+            string reason = Mathf.Abs(dotUp) >= 0.99f ? "gimbal" : "len²";
             _debugLabel.Text =
                 $"fwd: {cameraForward:F2}  len²: {fwdLen2:F3}\n" +
-                $"dot(up): {dotUp:F3}  basisNaN: {basisNaN}\n" +
-                $"tracking: {(fwdLen2 > 0.25f && !basisNaN ? "YES" : "NO ← STOPPED")}";
+                $"dot(up): {dotUp:F3}\n" +
+                $"tracking: {(canTrack ? "YES" : $"NO — {reason}")}";
         }
 
-        if (basisNaN)
+        if (canTrack)
         {
-            // Basis poisoned by a previous degenerate Slerp — reset to identity.
-            GD.PrintErr("[Turret] NaN basis detected — resetting. dotUp was: " + dotUp);
-            GlobalTransform = new Transform3D(Basis.Identity, GlobalPosition);
-        }
-
-        if (fwdLen2 > 0.25f)
-        {
-            var targetBasis = Basis.LookingAt(cameraForward, Vector3.Up);
+            var targetQuat = Basis.LookingAt(cameraForward, Vector3.Up).GetRotationQuaternion();
             float t = 1f - Mathf.Exp(-_config.TurretTrackingSpeed * dt);
-            GlobalTransform = new Transform3D(
-                GlobalTransform.Basis.Slerp(targetBasis, t),
-                GlobalPosition);
+            _turretQuat = _turretQuat.Slerp(targetQuat, t).Normalized();
+            GlobalTransform = new Transform3D(new Basis(_turretQuat), GlobalPosition);
         }
 
         // 3. Cooldowns
