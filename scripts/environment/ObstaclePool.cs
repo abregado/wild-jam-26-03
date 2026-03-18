@@ -29,9 +29,16 @@ public partial class ObstaclePool : Node3D
     private bool[] _cubeInStream = System.Array.Empty<bool>();
     private StandardMaterial3D[] _materials = System.Array.Empty<StandardMaterial3D>();
 
-    // Cliff-only: physics bodies for raycast detection (layer 8 = 128)
+    // Cliff-only: wide physics bodies for forward-ray cliff detection (layer 8 = 128)
     private StaticBody3D[] _cliffBodies = System.Array.Empty<StaticBody3D>();
     private bool _isCliffZone;
+
+    // All zones: actual-geometry physics bodies for flip-path arc checks (layer 9 = 256)
+    private StaticBody3D[] _flipBodies = System.Array.Empty<StaticBody3D>();
+
+    // First-spawn tracking per section
+    private bool _firstSpawnDone = true;
+    private bool _wasActiveLastFrame = false;
 
     private GameConfig _config = null!;
     private TrainSpeedManager _tsm = null!;
@@ -45,6 +52,7 @@ public partial class ObstaclePool : Node3D
     // Collision body width wide enough to intercept a forward ray from the car at X=±8
     private const float CliffBodyWidth = 10f;
     private const int CliffCollisionLayer = 128; // layer 8
+    private const int FlipBodyLayer = 256;        // layer 9 — arc path intersection checks
 
     // Desert brown palette
     private static readonly Color[] PaletteColors =
@@ -87,6 +95,8 @@ public partial class ObstaclePool : Node3D
         if (_isCliffZone)
             _cliffBodies = new StaticBody3D[poolSize];
 
+        _flipBodies = new StaticBody3D[poolSize];
+
         float zoneWidth = GetZoneWidth();
         float spacing   = _config.ObstacleCubeSpacing;
 
@@ -95,7 +105,7 @@ public partial class ObstaclePool : Node3D
             float height = GetRandomHeight();
             var boxMesh = new BoxMesh
             {
-                Size     = new Vector3(zoneWidth, height, spacing * 0.85f),
+                Size     = new Vector3(zoneWidth, height, spacing),
                 Material = _materials[_rng.RandiRange(0, _materials.Length - 1)],
             };
             _cubeMeshes[i] = boxMesh;
@@ -111,12 +121,12 @@ public partial class ObstaclePool : Node3D
             AddChild(inst);
             _cubes[i] = inst;
 
-            // Create cliff collision body (parked = layer 0 = disabled)
+            // Cliff forward-detection body (wide, layer 8)
             if (_isCliffZone)
             {
                 var shape = new BoxShape3D
                 {
-                    Size = new Vector3(CliffBodyWidth, height, spacing * 0.85f),
+                    Size = new Vector3(CliffBodyWidth, height, spacing),
                 };
                 var col = new CollisionShape3D { Shape = shape };
                 var body = new StaticBody3D
@@ -128,6 +138,24 @@ public partial class ObstaclePool : Node3D
                 body.AddChild(col);
                 AddChild(body);
                 _cliffBodies[i] = body;
+            }
+
+            // Flip-path body — actual cube geometry, all zones, layer 9
+            {
+                var flipShape = new BoxShape3D
+                {
+                    Size = new Vector3(zoneWidth, height, spacing),
+                };
+                var flipCol = new CollisionShape3D { Shape = flipShape };
+                var flipBody = new StaticBody3D
+                {
+                    CollisionLayer = 0, // disabled until in-stream
+                    CollisionMask  = 0,
+                    Position       = parkPos,
+                };
+                flipBody.AddChild(flipCol);
+                AddChild(flipBody);
+                _flipBodies[i] = flipBody;
             }
         }
 
@@ -144,6 +172,11 @@ public partial class ObstaclePool : Node3D
         float spacing  = _config.ObstacleCubeSpacing;
         float spawnZ   = _locoZ + _config.SpawnAheadDistance;
 
+        // Detect rising edge of IsZoneActive() — reset first-spawn flag for new section
+        if (streaming && !_wasActiveLastFrame)
+            _firstSpawnDone = false;
+        _wasActiveLastFrame = streaming;
+
         // Move all in-stream cubes; park them when they pass the despawn threshold
         for (int i = 0; i < _cubes.Length; i++)
         {
@@ -154,7 +187,6 @@ public partial class ObstaclePool : Node3D
 
             if (pos.Z < _despawnZ)
             {
-                // Park — whether streaming or draining, park and let the front-spawn refill if needed
                 _cubeInStream[i]  = false;
                 _cubes[i].Visible = false;
                 var parkPos = new Vector3(GetZoneX(), _cubes[i].Position.Y, spawnZ + 100f);
@@ -164,41 +196,66 @@ public partial class ObstaclePool : Node3D
                     _cliffBodies[i].CollisionLayer = 0;
                     _cliffBodies[i].Position = parkPos;
                 }
+                _flipBodies[i].CollisionLayer = 0;
+                _flipBodies[i].Position = parkPos;
                 continue;
             }
 
             _cubes[i].Position = pos;
             if (_isCliffZone)
                 _cliffBodies[i].Position = pos;
+            _flipBodies[i].Position = pos;
         }
 
         // While streaming: emit one cube from spawnZ whenever the front has a gap
         if (streaming)
         {
             float frontZ = GetFrontStreamZ();
-            // frontZ == float.MinValue means no cubes in stream at all
             if (frontZ < spawnZ - spacing)
             {
                 int idx = FindParkedCube();
                 if (idx >= 0)
                 {
                     float height = GetRandomHeight();
-                    float depth  = spacing * 0.85f;
-                    _cubeMeshes[idx].Size     = new Vector3(GetZoneWidth(), height, depth);
-                    _cubeMeshes[idx].Material = _materials[_rng.RandiRange(0, _materials.Length - 1)];
-                    var streamPos = new Vector3(GetZoneX(), GetZoneY(height), spawnZ);
+                    bool isFirstSpawn = !_firstSpawnDone;
+                    _firstSpawnDone = true;
+
+                    // First-spawn rules: first Roof/Cliff cube is a phantom gap (invisible, no collision).
+                    // First Plateau cube spawns at half height.
+                    bool isPhantom = isFirstSpawn &&
+                        (Zone == ZoneType.Roof || Zone == ZoneType.LeftCliff || Zone == ZoneType.RightCliff);
+
+                    if (isFirstSpawn && Zone == ZoneType.Plateau)
+                        height *= 0.5f;
+
+                    float depth     = spacing;
+                    float zoneWidth = GetZoneWidth();
+                    var streamPos   = new Vector3(GetZoneX(), GetZoneY(height), spawnZ);
+
+                    // Place the cube in-stream so frontZ advances (creates the gap), but keep it hidden
                     _cubes[idx].Position  = streamPos;
-                    _cubes[idx].Visible   = true;
+                    _cubes[idx].Visible   = !isPhantom;
                     _cubeInStream[idx]    = true;
 
-                    if (_isCliffZone)
+                    if (!isPhantom)
                     {
-                        // Update collision shape height to match new cube
-                        if (_cliffBodies[idx].GetChild(0) is CollisionShape3D cs
-                            && cs.Shape is BoxShape3D bs)
-                            bs.Size = new Vector3(CliffBodyWidth, height, depth);
-                        _cliffBodies[idx].Position       = streamPos;
-                        _cliffBodies[idx].CollisionLayer = CliffCollisionLayer;
+                        _cubeMeshes[idx].Size     = new Vector3(zoneWidth, height, depth);
+                        _cubeMeshes[idx].Material = _materials[_rng.RandiRange(0, _materials.Length - 1)];
+
+                        if (_isCliffZone)
+                        {
+                            if (_cliffBodies[idx].GetChild(0) is CollisionShape3D cs
+                                && cs.Shape is BoxShape3D bs)
+                                bs.Size = new Vector3(CliffBodyWidth, height, depth);
+                            _cliffBodies[idx].Position       = streamPos;
+                            _cliffBodies[idx].CollisionLayer = CliffCollisionLayer;
+                        }
+
+                        if (_flipBodies[idx].GetChild(0) is CollisionShape3D fcs
+                            && fcs.Shape is BoxShape3D fbs)
+                            fbs.Size = new Vector3(zoneWidth, height, depth);
+                        _flipBodies[idx].Position       = streamPos;
+                        _flipBodies[idx].CollisionLayer = FlipBodyLayer;
                     }
                 }
             }
@@ -265,7 +322,7 @@ public partial class ObstaclePool : Node3D
     private float GetZoneWidth() => Zone switch
     {
         ZoneType.LeftCliff  or ZoneType.RightCliff => _config.CliffCubeWidth,
-        ZoneType.Roof       or ZoneType.Plateau    => 14f,
+        ZoneType.Roof       or ZoneType.Plateau    => (CliffInnerEdge + _config.CliffCubeWidth) * 2f,
         _                                          => 3f,
     };
 }

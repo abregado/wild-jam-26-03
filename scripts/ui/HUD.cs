@@ -64,14 +64,6 @@ public partial class HUD : CanvasLayer
         // Train speed
         _trainSpeedLabel.Text = $"Train: {tsm.CurrentTrainSpeed:F0} u/s";
 
-        // Grey out flip prompts when blocked
-        _flipOverRow.Modulate = _playerCar.CanSwitchOver
-            ? new Color(1f, 1f, 1f, 1f)
-            : new Color(1f, 1f, 1f, 0.3f);
-        _flipUnderRow.Modulate = _playerCar.CanSwitchUnder
-            ? new Color(1f, 1f, 1f, 1f)
-            : new Color(1f, 1f, 1f, 0.3f);
-
         // Obstacle warning
         var om = GetNode<ObstacleManager>("/root/ObstacleManager");
         if (om.IsInWarning)

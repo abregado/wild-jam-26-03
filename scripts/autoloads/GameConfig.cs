@@ -45,6 +45,8 @@ public partial class GameConfig : Node
     public float CarDriveHeight { get; private set; } = 9.0f;
     public int NumberPreScannedContainers { get; private set; } = 0;
     public float CliffDetectionDistance { get; private set; } = 40f;
+    public int FlipRaySamples { get; private set; } = 10;
+    public float CliffAutoFlipBrake { get; private set; } = 2.0f;
 
     // Speed
     public float BaseTrainSpeed { get; private set; } = 15f;
@@ -209,6 +211,8 @@ public partial class GameConfig : Node
             CarDriveHeight              = GetFloat(p, "car_drive_height",               CarDriveHeight);
             NumberPreScannedContainers  = GetInt  (p, "number_pre_scanned_containers",  NumberPreScannedContainers);
             CliffDetectionDistance      = GetFloat(p, "cliff_detection_distance",       CliffDetectionDistance);
+            FlipRaySamples             = GetInt  (p, "flip_ray_samples",              FlipRaySamples);
+            CliffAutoFlipBrake         = GetFloat(p, "cliff_auto_flip_brake",         CliffAutoFlipBrake);
         }
 
         if (data.TryGetValue("speed", out var speedVar))

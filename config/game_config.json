@@ -38,7 +38,9 @@
     "side_change_time": 2.5,
     "car_drive_height": 8.0,
     "number_pre_scanned_containers": 0,
-    "cliff_detection_distance": 21.0
+    "cliff_detection_distance": 21.0,
+    "flip_ray_samples": 20,
+    "cliff_auto_flip_brake": 2.0
   },
   "speed": {
     "base_train_speed": 15.0,

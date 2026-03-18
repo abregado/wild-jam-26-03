@@ -42,21 +42,23 @@ public partial class PlayerCar : Node3D
     private bool _isSwitchingSides = false;
     private float _switchProgress = 0f; // 0 → 1
     private float _arcStartX;
-    private int _switchArcDir = 0; // +1 = over the top, -1 = under
+    private int _switchArcDir = 0;       // +1 = over the top, -1 = under
+    private bool _flipReversed = false;  // true = arc is playing backward (reversal in progress)
+    private float _flipLockedVelocity;   // relative velocity frozen at flip start
     private const float OverArcHeight = 6f;
     private const float UnderArcHeight = 6f;
-    private const float PillarCollisionRadius = 2.5f; // world-Z half-range for pillar collision
 
-    private PillarPool? _pillarPool;
-    private ObstacleManager? _obstacleManager;
-    private bool _canSwitchUnder = true;
-    private bool _canSwitchOver = true;
+    // Flip-path physics check uses layer 9 (256) — actual-geometry obstacle bodies
+    private const uint FlipBodyMask = 256u;
+    private SphereShape3D _flipCheckSphere = null!;
+
     private Shield? _shield;
 
     public float RelativeVelocity => _relativeVelocity;
-    public bool CanSwitchUnder => _canSwitchUnder;
-    public bool CanSwitchOver => _canSwitchOver;
-    public bool IsOnRightSide => _onRightSide;
+    // Simplified: the only gate on manual flips is "not already flipping"
+    public bool CanSwitchUnder => !_isSwitchingSides;
+    public bool CanSwitchOver  => !_isSwitchingSides;
+    public bool IsOnRightSide  => _onRightSide;
     public bool IsFlippingUnder => _isSwitchingSides && _switchArcDir < 0;
 
     public override void _Ready()
@@ -68,8 +70,8 @@ public partial class PlayerCar : Node3D
         YHeight = _config.CarDriveHeight;
 
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
-        _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;
-        _obstacleManager = GetNodeOrNull<ObstacleManager>("/root/ObstacleManager");
+
+        _flipCheckSphere = new SphereShape3D { Radius = 0.4f };
 
         _shield = new Shield();
         AddChild(_shield);
@@ -106,7 +108,7 @@ public partial class PlayerCar : Node3D
         if (@event is InputEventKey key2 && key2.Pressed && !key2.Echo
             && key2.Keycode == Key.Ctrl)
         {
-            if (_canSwitchUnder && !_isSwitchingSides)
+            if (!_isSwitchingSides && IsFlipPathClear(-1))
                 StartSideSwitch(-1);
             GetViewport().SetInputAsHandled();
             return;
@@ -159,70 +161,74 @@ public partial class PlayerCar : Node3D
         float accel = _config.CarAcceleration;
         float decel = _config.CarDeceleration;
 
-        // Project camera axes onto the train Z axis (+Z = toward locomotive).
-        // wsFactor: how much W/S aligns with train forward.
-        // adFactor: how much D/A aligns with train forward.
-        var camBasis = _camera.GlobalTransform.Basis;
-        float wsFactor = -camBasis.Z.Z;   // camera forward = -Basis.Z
-        float adFactor =  camBasis.X.Z;   // camera right  = +Basis.X
-
-        float inputAxis = 0f;
-        if (Input.IsActionPressed("move_forward"))  inputAxis += wsFactor;
-        if (Input.IsActionPressed("move_backward")) inputAxis -= wsFactor;
-        if (Input.IsActionPressed("move_right"))    inputAxis += adFactor;
-        if (Input.IsActionPressed("move_left"))     inputAxis -= adFactor;
-        inputAxis = Mathf.Clamp(inputAxis, -1f, 1f);
-
-        if (Mathf.Abs(inputAxis) > 0.01f)
-        {
-            float rate = inputAxis > 0f ? accel : decel;
-            _relativeVelocity += inputAxis * rate * dt;
-        }
-        else
-        {
-            float drag = decel * dt;
-            if (Mathf.Abs(_relativeVelocity) < drag)
-                _relativeVelocity = 0f;
-            else
-                _relativeVelocity -= Mathf.Sign(_relativeVelocity) * drag;
-        }
-
-        _relativeVelocity = Mathf.Clamp(_relativeVelocity,
-            _tsm.MaxRelativeBackward, _tsm.MaxRelativeForward);
-
-        // Update pole-clearance check every frame for HUD
-        _canSwitchUnder = !_isSwitchingSides && PredictUnderArcClear();
-
-        // Obstacle overrides — active state takes priority; warning state applies next
-        GetEffectiveObstacleState(out CliffSide effCliff, out MovementLimit effLimit);
-        bool anyCliff  = effCliff != CliffSide.None;
-        bool roofUp    = effLimit == MovementLimit.Roof;
-        bool plateauUp = effLimit == MovementLimit.Plateau;
-        _canSwitchOver = !anyCliff && !roofUp;
-        if (anyCliff || plateauUp)
-            _canSwitchUnder = false;
-
-        // Raycast-based cliff detection: if a cliff wall is within detection range, auto-switch
-        if (anyCliff && !_isSwitchingSides && _inputEnabled)
-            CheckCliffRaycast(effCliff, effLimit);
-
-        // Trigger side switch (player input)
+        // Velocity input is frozen during a flip — speed is locked to what it was at flip start
         if (!_isSwitchingSides)
         {
-            if (Input.IsActionJustPressed("switch_side_over") && _canSwitchOver)
+            var camBasis = _camera.GlobalTransform.Basis;
+            float wsFactor = -camBasis.Z.Z;
+            float adFactor =  camBasis.X.Z;
+
+            float inputAxis = 0f;
+            if (Input.IsActionPressed("move_forward"))  inputAxis += wsFactor;
+            if (Input.IsActionPressed("move_backward")) inputAxis -= wsFactor;
+            if (Input.IsActionPressed("move_right"))    inputAxis += adFactor;
+            if (Input.IsActionPressed("move_left"))     inputAxis -= adFactor;
+            inputAxis = Mathf.Clamp(inputAxis, -1f, 1f);
+
+            if (Mathf.Abs(inputAxis) > 0.01f)
+            {
+                float rate = inputAxis > 0f ? accel : decel;
+                _relativeVelocity += inputAxis * rate * dt;
+            }
+            else
+            {
+                float drag = decel * dt;
+                if (Mathf.Abs(_relativeVelocity) < drag)
+                    _relativeVelocity = 0f;
+                else
+                    _relativeVelocity -= Mathf.Sign(_relativeVelocity) * drag;
+            }
+
+            _relativeVelocity = Mathf.Clamp(_relativeVelocity,
+                _tsm.MaxRelativeBackward, _tsm.MaxRelativeForward);
+
+            // Auto-flip from forward cliff detection
+            CheckCliffAutoFlip(dt);
+
+            // Manual flip over (Space)
+            if (Input.IsActionJustPressed("switch_side_over") && IsFlipPathClear(+1))
                 StartSideSwitch(+1);
         }
 
-        float newZ = Position.Z + _relativeVelocity * dt;
+        float activeVelocity = _isSwitchingSides ? _flipLockedVelocity : _relativeVelocity;
+        float newZ = Position.Z + activeVelocity * dt;
 
         if (_isSwitchingSides)
         {
-            _switchProgress += dt / _config.SideChangeTime;
+            // Safety: if an obstacle appears mid-flip, reverse back.
+            // DISABLED for testing — cycle of flip/reverse when near cliff.
+            // if (!_flipReversed && _switchProgress > 0.05f)
+            //     CheckMidFlipReversal();
+
+            // Advance or retreat progress
+            if (_flipReversed)
+                _switchProgress -= dt / _config.SideChangeTime;
+            else
+                _switchProgress += dt / _config.SideChangeTime;
+
             if (_switchProgress >= 1f)
             {
                 _switchProgress = 1f;
                 _isSwitchingSides = false;
+                _flipReversed = false;
                 _onRightSide = !_onRightSide;
+            }
+            else if (_switchProgress <= 0f)
+            {
+                // Reversed all the way back — returned to original side
+                _switchProgress = 0f;
+                _isSwitchingSides = false;
+                _flipReversed = false;
             }
             else
             {
@@ -240,81 +246,93 @@ public partial class PlayerCar : Node3D
     }
 
     /// <summary>
-    /// Predicts the two Z positions where the player crosses a pillar's X during the under-arc,
-    /// then checks whether any pillar will be at those world-Z positions at those times.
-    /// Returns true when no collision is predicted.
+    /// Samples the flip arc at N points and sphere-queries each against obstacle flip bodies
+    /// (layer 9 = 256). Returns true when the full path is clear.
     /// </summary>
-    private bool PredictUnderArcClear()
+    private bool IsFlipPathClear(int direction)
     {
-        if (_pillarPool == null) return true;
-
-        // Fraction of arc at which player X crosses PillarX (symmetric on both sides)
-        float tFrac = Mathf.Acos(PillarPool.PillarX / XOffset) / Mathf.Pi;
-        float t1 = tFrac * _config.SideChangeTime;
-        float t2 = (1f - tFrac) * _config.SideChangeTime;
-
-        // In world space: player moves at relativeVelocity, pillars move at -trainSpeed.
-        // A pillar at current world Z = pZ will be at pZ - trainSpeed*t when the player
-        // reaches world Z = Position.Z + relVelocity*t.
-        // Collision when: Position.Z + relVelocity*t == pZ - trainSpeed*t
-        //              →  pZ == Position.Z + (relVelocity + trainSpeed) * t
+        var spaceState = GetWorld3D().DirectSpaceState;
+        float startX    = _onRightSide ? XOffset : -XOffset;
+        float arcHeight = direction > 0 ? OverArcHeight : UnderArcHeight;
+        int   samples   = _config.FlipRaySamples;
+        float duration  = _config.SideChangeTime;
+        // Combined speed: car's world-space Z movement + obstacle approach speed.
+        // Obstacles move at -trainSpeed, so we must look ahead by relativeVelocity + trainSpeed.
+        // If car matches train speed (relativeVelocity=0), obstacles still approach at trainSpeed.
         float combinedSpeed = _relativeVelocity + _tsm.CurrentTrainSpeed;
-        float targetZ1 = Position.Z + combinedSpeed * t1;
-        float targetZ2 = Position.Z + combinedSpeed * t2;
 
-        return !_pillarPool.HasPillarNearZ(targetZ1, PillarCollisionRadius)
-            && !_pillarPool.HasPillarNearZ(targetZ2, PillarCollisionRadius);
+        for (int i = 1; i <= samples; i++)
+        {
+            float t       = (float)i / samples;
+            float sampleX = startX * Mathf.Cos(t * Mathf.Pi);
+            float sampleY = YHeight + direction * arcHeight * Mathf.Sin(t * Mathf.Pi);
+            float sampleZ = Position.Z + combinedSpeed * (t * duration);
+
+            var query = new PhysicsShapeQueryParameters3D
+            {
+                Shape         = _flipCheckSphere,
+                Transform     = new Transform3D(Basis.Identity, new Vector3(sampleX, sampleY, sampleZ)),
+                CollisionMask = FlipBodyMask,
+                CollideWithBodies = true,
+                CollideWithAreas  = false,
+            };
+
+            if (spaceState.IntersectShape(query, 1).Count > 0)
+                return false;
+        }
+        return true;
     }
 
     /// <summary>
-    /// Active state takes priority over warning. Returns None/None when no manager or no section.
+    /// Casts a short forward ray. If a cliff body (layer 8) is detected, picks the clear flip
+    /// direction using IsFlipPathClear. If neither direction is clear, slows the car slightly.
     /// </summary>
-    private void GetEffectiveObstacleState(out CliffSide cliff, out MovementLimit limit)
+    private void CheckCliffAutoFlip(float dt)
     {
-        cliff = CliffSide.None;
-        limit = MovementLimit.None;
-        if (_obstacleManager == null) return;
-
-        cliff = _obstacleManager.ActiveCliffSide != CliffSide.None
-            ? _obstacleManager.ActiveCliffSide
-            : _obstacleManager.IsInWarning ? _obstacleManager.UpcomingCliffSide : CliffSide.None;
-
-        limit = _obstacleManager.ActiveMovementLimit != MovementLimit.None
-            ? _obstacleManager.ActiveMovementLimit
-            : _obstacleManager.IsInWarning ? _obstacleManager.UpcomingMovementLimit : MovementLimit.None;
-    }
-
-    /// <summary>
-    /// Casts a ray forward (+Z) from the car. If it hits a cliff body (layer 8 = mask 128)
-    /// and the car is on the cliff side, triggers a safe side-switch automatically.
-    /// </summary>
-    private void CheckCliffRaycast(CliffSide cliff, MovementLimit limit)
-    {
-        // Only act if we're currently on the cliff side
-        bool onCliffSide = (cliff == CliffSide.Right &&  _onRightSide)
-                        || (cliff == CliffSide.Left  && !_onRightSide);
-        if (!onCliffSide) return;
+        if (_isSwitchingSides) return;
 
         var spaceState = GetWorld3D().DirectSpaceState;
         var origin = GlobalPosition;
         var target = origin + new Vector3(0f, 0f, _config.CliffDetectionDistance);
-        var query  = PhysicsRayQueryParameters3D.Create(origin, target, 128); // layer 8
+        var query  = PhysicsRayQueryParameters3D.Create(origin, target, 128u); // cliff bodies
         var result = spaceState.IntersectRay(query);
 
         if (result.Count == 0) return;
 
-        // Hit a cliff wall — pick a safe arc direction; pillar blocking is ignored for forced switches
-        int dir = limit == MovementLimit.Plateau ? +1   // plateau blocks under → go over
-                :                                  -1;  // default under (Roof or unconstrained)
-        StartSideSwitch(dir);
+        // Prefer under, fall back to over, otherwise brake
+        if (IsFlipPathClear(-1))
+            StartSideSwitch(-1);
+        else if (IsFlipPathClear(+1))
+            StartSideSwitch(+1);
+        else
+            _relativeVelocity -= _config.CliffAutoFlipBrake * dt;
+    }
+
+    /// <summary>
+    /// During a flip, casts a short forward ray against flip bodies (layer 9).
+    /// If hit, reverses the arc so the car returns to its original side.
+    /// </summary>
+    private void CheckMidFlipReversal()
+    {
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var origin = GlobalPosition;
+        var target = origin + new Vector3(0f, 0f, _config.CliffDetectionDistance * 0.5f);
+        var query  = PhysicsRayQueryParameters3D.Create(origin, target, FlipBodyMask);
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count == 0) return;
+
+        _flipReversed = true;
     }
 
     private void StartSideSwitch(int direction)
     {
-        _isSwitchingSides = true;
-        _switchProgress = 0f;
-        _switchArcDir = direction;
-        _arcStartX = _onRightSide ? XOffset : -XOffset;
+        _isSwitchingSides    = true;
+        _switchProgress      = 0f;
+        _switchArcDir        = direction;
+        _arcStartX           = _onRightSide ? XOffset : -XOffset;
+        _flipLockedVelocity  = _relativeVelocity;
+        _flipReversed        = false;
     }
 
     public void FlashShieldHit() => _shield?.FlashHit();
