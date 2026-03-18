@@ -192,23 +192,9 @@ public partial class PlayerCar : Node3D
         if (anyCliff || plateauUp)
             _canSwitchUnder = false;
 
-        // Every frame: if the car is on the cliff side or mid-arc toward it, force a safe switch
-        if (anyCliff && _inputEnabled)
-        {
-            bool willEndOnRight = _isSwitchingSides ? !_onRightSide : _onRightSide;
-            bool onCliffSide    = (effCliff == CliffSide.Right &&  willEndOnRight)
-                               || (effCliff == CliffSide.Left  && !willEndOnRight);
-            if (onCliffSide)
-            {
-                // Abort any in-progress switch and snap arc back to the starting side
-                _isSwitchingSides = false;
-                _switchProgress   = 0f;
-                int safeDir = (effLimit == MovementLimit.Roof)    ? -1   // roof → go under
-                            : (effLimit == MovementLimit.Plateau)  ? +1   // plateau → go over
-                            : +1;                                         // default: go over
-                StartSideSwitch(safeDir);
-            }
-        }
+        // Raycast-based cliff detection: if a cliff wall is within detection range, auto-switch
+        if (anyCliff && !_isSwitchingSides && _inputEnabled)
+            CheckCliffRaycast(effCliff, effLimit);
 
         // Trigger side switch (player input)
         if (!_isSwitchingSides)
@@ -288,6 +274,33 @@ public partial class PlayerCar : Node3D
         limit = _obstacleManager.ActiveMovementLimit != MovementLimit.None
             ? _obstacleManager.ActiveMovementLimit
             : _obstacleManager.IsInWarning ? _obstacleManager.UpcomingMovementLimit : MovementLimit.None;
+    }
+
+    /// <summary>
+    /// Casts a ray forward (+Z) from the car. If it hits a cliff body (layer 8 = mask 128)
+    /// and the car is on the cliff side, triggers a safe side-switch automatically.
+    /// </summary>
+    private void CheckCliffRaycast(CliffSide cliff, MovementLimit limit)
+    {
+        // Only act if we're currently on the cliff side
+        bool onCliffSide = (cliff == CliffSide.Right &&  _onRightSide)
+                        || (cliff == CliffSide.Left  && !_onRightSide);
+        if (!onCliffSide) return;
+
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var origin = GlobalPosition;
+        var target = origin + new Vector3(0f, 0f, _config.CliffDetectionDistance);
+        var query  = PhysicsRayQueryParameters3D.Create(origin, target, 128); // layer 8
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count == 0) return;
+
+        // Hit a cliff wall — pick a safe arc direction
+        int dir = limit == MovementLimit.Roof    ? -1   // can't go over → go under
+                : limit == MovementLimit.Plateau  ? +1   // can't go under → go over
+                : _canSwitchUnder                 ? -1   // prefer under
+                :                                   +1;  // fall back over
+        StartSideSwitch(dir);
     }
 
     private void StartSideSwitch(int direction)

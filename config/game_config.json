@@ -37,7 +37,8 @@
     "car_deceleration": 8.0,
     "side_change_time": 3.5,
     "car_drive_height": 8.0,
-    "number_pre_scanned_containers": 0
+    "number_pre_scanned_containers": 0,
+    "cliff_detection_distance": 6.0
   },
   "speed": {
     "base_train_speed": 15.0,
@@ -69,8 +70,8 @@
     "drone_max_deployer_distance": 50.0
   },
   "obstacles": {
-    "section_min_duration": 12.0,
-    "section_max_duration": 25.0,
+    "section_min_duration": 4.0,
+    "section_max_duration": 8.0,
     "warning_time": 4.0,
     "cube_pool_size": 12,
     "cube_spacing": 6.0

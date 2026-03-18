@@ -29,6 +29,7 @@ public partial class ObstacleManager : Node
     private enum Phase { Startup, Warning, Active }
     private Phase _phase = Phase.Startup;
     private float _phaseTimer = 8f; // initial pause before first warning
+    private MovementLimit _lastMovementLimit = MovementLimit.None;
 
     public override void _Ready()
     {
@@ -72,6 +73,7 @@ public partial class ObstacleManager : Node
     {
         ActiveCliffSide = UpcomingCliffSide;
         ActiveMovementLimit = UpcomingMovementLimit;
+        _lastMovementLimit = ActiveMovementLimit;
         IsInWarning = false;
         _phase = Phase.Active;
         _phaseTimer = _rng.RandfRange(_config.ObstacleSectionMinDuration, _config.ObstacleSectionMaxDuration);
@@ -98,12 +100,24 @@ public partial class ObstacleManager : Node
         else               cliff = CliffSide.None;
 
         // Roll limit: 30% Roof, 30% Plateau, 40% None
+        // Forbid roof→plateau and plateau→roof transitions
         MovementLimit limit;
-        float r2 = _rng.Randf();
-        if (r2 < 0.3f)      limit = MovementLimit.Roof;
-        else if (r2 < 0.6f) limit = MovementLimit.Plateau;
-        else                 limit = MovementLimit.None;
+        int attempts = 0;
+        do
+        {
+            float r2 = _rng.Randf();
+            if (r2 < 0.3f)      limit = MovementLimit.Roof;
+            else if (r2 < 0.6f) limit = MovementLimit.Plateau;
+            else                 limit = MovementLimit.None;
+            attempts++;
+        }
+        while (attempts < 10 && IsOppositeLimit(_lastMovementLimit, limit));
 
         return (cliff, limit);
     }
+
+    // Returns true if the two limits are roof↔plateau opposites (forbidden transition).
+    private static bool IsOppositeLimit(MovementLimit last, MovementLimit next)
+        => (last == MovementLimit.Roof    && next == MovementLimit.Plateau)
+        || (last == MovementLimit.Plateau && next == MovementLimit.Roof);
 }

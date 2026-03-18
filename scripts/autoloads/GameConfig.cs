@@ -44,6 +44,7 @@ public partial class GameConfig : Node
     public float SideChangeTime { get; private set; } = 1.5f;
     public float CarDriveHeight { get; private set; } = 9.0f;
     public int NumberPreScannedContainers { get; private set; } = 0;
+    public float CliffDetectionDistance { get; private set; } = 40f;
 
     // Speed
     public float BaseTrainSpeed { get; private set; } = 15f;
@@ -173,6 +174,7 @@ public partial class GameConfig : Node
             SideChangeTime              = GetFloat(p, "side_change_time",               SideChangeTime);
             CarDriveHeight              = GetFloat(p, "car_drive_height",               CarDriveHeight);
             NumberPreScannedContainers  = GetInt  (p, "number_pre_scanned_containers",  NumberPreScannedContainers);
+            CliffDetectionDistance      = GetFloat(p, "cliff_detection_distance",       CliffDetectionDistance);
         }
 
         if (data.TryGetValue("speed", out var speedVar))
