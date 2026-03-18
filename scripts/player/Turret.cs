@@ -36,9 +36,6 @@ public partial class Turret : Node3D
     private MeshInstance3D _turretDot = null!;
     private Node3D _muzzleFlash = null!;
 
-    private int _currentAmmo;
-    private bool _isReloading;
-    private float _reloadTimer;
     private float _fireCooldown;
     private float _beaconCooldown;
 
@@ -55,16 +52,9 @@ public partial class Turret : Node3D
     [Export] public bool DebugTracking { get; set; } = false;
     private Label? _debugLabel;
 
-    public int CurrentAmmo => _currentAmmo;
-    public bool IsReloading => _isReloading;
-    public float ReloadProgress => _isReloading && _config != null
-        ? 1f - _reloadTimer / _config.ReloadTime
-        : 1f;
-
     public override void _Ready()
     {
         _config = GetNode<GameConfig>("/root/GameConfig");
-        _currentAmmo = _config.AmmoPerClip;
 
         // Turret is a sibling of Camera3D inside PlayerCar
         _camera = GetParent().GetNode<Camera3D>("Camera3D");
@@ -187,26 +177,10 @@ public partial class Turret : Node3D
         if (_fireCooldown > 0f) _fireCooldown -= dt;
         if (_beaconCooldown > 0f) _beaconCooldown -= dt;
 
-        // 4. Reload timer
-        if (_isReloading)
+        // 4. Handle in-progress burst
+        if (_burstRemaining > 0)
         {
-            _reloadTimer -= dt;
-            if (_reloadTimer <= 0f)
-            {
-                _currentAmmo = _config.AmmoPerClip;
-                _isReloading = false;
-            }
-        }
-
-        // 5. Handle in-progress burst
-        if (_burstRemaining > 0 && !_isReloading)
-        {
-            if (_currentAmmo <= 0)
-            {
-                _burstRemaining = 0;
-                StartReload();
-            }
-            else if (_burstDelayTimer <= 0f)
+            if (_burstDelayTimer <= 0f)
             {
                 FireSingleBullet();
                 _burstRemaining--;
@@ -219,23 +193,14 @@ public partial class Turret : Node3D
             }
         }
 
-        // 6. Trigger new burst
+        // 5. Trigger new burst
         bool fireInput = _config.AutoFire
             ? Input.IsActionPressed("fire_primary")
             : Input.IsActionJustPressed("fire_primary");
-        if (fireInput && !_isReloading && _fireCooldown <= 0f && _burstRemaining <= 0)
-        {
-            if (_currentAmmo > 0)
-                StartBurst();
-            else
-                StartReload();
-        }
+        if (fireInput && _fireCooldown <= 0f && _burstRemaining <= 0)
+            StartBurst();
 
-        // 7. Manual reload
-        if (Input.IsActionJustPressed("reload") && !_isReloading && _currentAmmo < _config.AmmoPerClip)
-            StartReload();
-
-        // 8. Beacon
+        // 6. Beacon
         if (Input.IsActionJustPressed("fire_beacon") && _beaconCooldown <= 0f)
             FireBeacon();
     }
@@ -263,7 +228,7 @@ public partial class Turret : Node3D
 
     private void StartBurst()
     {
-        _burstRemaining = Mathf.Min(_config.BurstCount, _currentAmmo);
+        _burstRemaining = _config.BurstCount;
         _burstDelayTimer = 0f;
         _fireCooldown = 1f / _config.RateOfFire;
     }
@@ -286,12 +251,8 @@ public partial class Turret : Node3D
 
         bullet.Initialize(_config.TurretDamage, _config.BlastRadius, _config.BulletSpeed);
 
-        _currentAmmo--;
         TriggerMuzzleFlash(tip);
         TriggerBarrelRetract();
-
-        if (_currentAmmo <= 0)
-            StartReload();
     }
 
     private void TriggerMuzzleFlash(Node3D tip)
@@ -332,9 +293,4 @@ public partial class Turret : Node3D
         _beaconCooldown = _config.BeaconReloadSpeed;
     }
 
-    private void StartReload()
-    {
-        _isReloading = true;
-        _reloadTimer = _config.ReloadTime;
-    }
 }

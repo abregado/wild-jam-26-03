@@ -15,8 +15,6 @@ public partial class GameConfig : Node
     public float BulletSize { get; private set; } = 0.55f;
     public float TrailThickness { get; private set; } = 0.18f;
     public float TurretTrackingSpeed { get; private set; } = 6f;
-    public int AmmoPerClip { get; private set; } = 12;
-    public float ReloadTime { get; private set; } = 2f;
     public int BurstCount { get; private set; } = 3;
     public float BurstDelay { get; private set; } = 0.08f;
     public float TurretMaxPitchDown { get; private set; } = 20f;
@@ -118,8 +116,6 @@ public partial class GameConfig : Node
             BulletSize = GetFloat(t, "bullet_size", BulletSize);
             TrailThickness = GetFloat(t, "trail_thickness", TrailThickness);
             TurretTrackingSpeed = GetFloat(t, "turret_tracking_speed", TurretTrackingSpeed);
-            AmmoPerClip = GetInt(t, "ammo_per_clip", AmmoPerClip);
-            ReloadTime = GetFloat(t, "reload_time", ReloadTime);
             BurstCount = GetInt(t, "burst_count", BurstCount);
             BurstDelay = GetFloat(t, "burst_delay", BurstDelay);
             TurretMaxPitchDown = GetFloat(t, "turret_max_pitch_down", TurretMaxPitchDown);
@@ -274,8 +270,6 @@ public partial class GameConfig : Node
         {
             case "turret_tracking_speed":    TurretTrackingSpeed   += v; break;
             case "turret_damage":            TurretDamage          += v; break;
-            case "ammo_per_clip":            AmmoPerClip           += (int)v; break;
-            case "reload_time":              ReloadTime            += v; break;
             case "burst_count":              BurstCount             = Mathf.Max(1, BurstCount + (int)v); break;
             case "burst_delay":              BurstDelay            += v; break;
             case "rate_of_fire":             RateOfFire            += v; break;
@@ -294,8 +288,6 @@ public partial class GameConfig : Node
         {
             case "turret_tracking_speed":    TurretTrackingSpeed   *= m; break;
             case "turret_damage":            TurretDamage          *= m; break;
-            case "ammo_per_clip":            AmmoPerClip            = (int)(AmmoPerClip * m); break;
-            case "reload_time":              ReloadTime            *= m; break;
             case "burst_count":              BurstCount             = Mathf.Max(1, (int)(BurstCount * m)); break;
             case "burst_delay":              BurstDelay            *= m; break;
             case "rate_of_fire":             RateOfFire            *= m; break;

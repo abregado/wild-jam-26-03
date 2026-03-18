@@ -578,8 +578,6 @@ public partial class UpgradeCard : PanelContainer
     {
         ["turret_tracking_speed"]    = ("Tracking Speed",   true),
         ["turret_damage"]            = ("Damage",           true),
-        ["ammo_per_clip"]            = ("Ammo / Clip",      true),
-        ["reload_time"]              = ("Reload Time",      false),   // lower = faster
         ["burst_count"]              = ("Burst Count",      true),
         ["burst_delay"]              = ("Burst Delay",      false),   // lower = faster
         ["rate_of_fire"]             = ("Rate of Fire",     true),
