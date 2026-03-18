@@ -66,6 +66,22 @@ custom_minimum_size = Vector2(400, 28)
 text = "3"
 horizontal_alignment = 1
 
+[node name="ObstacleWarning" type="Label" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -220.0
+offset_top = 100.0
+offset_right = 220.0
+offset_bottom = 132.0
+custom_minimum_size = Vector2(440, 32)
+text = ""
+horizontal_alignment = 1
+modulate = Color(1, 0.6, 0.1, 1)
+
 [node name="Crosshair" type="Label" parent="."]
 anchors_preset = 8
 anchor_left = 0.5

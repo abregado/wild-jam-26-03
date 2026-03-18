@@ -21,7 +21,9 @@ public partial class HUD : CanvasLayer
     private Label _warningLabel = null!;
     private Label _countdownLabel = null!;
     private Label _clickPrompt = null!;
+    private Label _obstacleWarningLabel = null!;
     private HBoxContainer _flipUnderRow = null!;
+    private HBoxContainer _flipOverRow = null!;
 
     private PlayerCar? _playerCar;
     private Turret? _turret;
@@ -33,6 +35,7 @@ public partial class HUD : CanvasLayer
         _warningLabel = GetNode<Label>(WarningLabelPath);
         _countdownLabel = GetNode<Label>(CountdownLabelPath);
         _clickPrompt = GetNode<Label>("ClickPrompt");
+        _obstacleWarningLabel = GetNode<Label>("ObstacleWarning");
 
         HideWarning();
         BuildButtonPrompts();
@@ -61,10 +64,25 @@ public partial class HUD : CanvasLayer
         // Train speed
         _trainSpeedLabel.Text = $"Train: {tsm.CurrentTrainSpeed:F0} u/s";
 
-        // Grey out Flip Under prompt when blocked
+        // Grey out flip prompts when blocked
+        _flipOverRow.Modulate = _playerCar.CanSwitchOver
+            ? new Color(1f, 1f, 1f, 1f)
+            : new Color(1f, 1f, 1f, 0.3f);
         _flipUnderRow.Modulate = _playerCar.CanSwitchUnder
             ? new Color(1f, 1f, 1f, 1f)
             : new Color(1f, 1f, 1f, 0.3f);
+
+        // Obstacle warning
+        var om = GetNode<ObstacleManager>("/root/ObstacleManager");
+        if (om.IsInWarning)
+        {
+            _obstacleWarningLabel.Text = $"⚠ {BuildObstacleWarningText(om.UpcomingCliffSide, om.UpcomingMovementLimit)} AHEAD";
+            _obstacleWarningLabel.Visible = true;
+        }
+        else
+        {
+            _obstacleWarningLabel.Visible = false;
+        }
 
         // Hide click prompt once mouse is captured
         _clickPrompt.Visible = Input.MouseMode != Input.MouseModeEnum.Captured;
@@ -104,7 +122,7 @@ public partial class HUD : CanvasLayer
 
         AddPromptRow(vbox, "mouse_left_outline.png",       "Fire");
         AddPromptRow(vbox, "mouse_right_outline.png",      "Beacon");
-        AddPromptRow(vbox, "keyboard_space_outline.png",   "Flip Over");
+        _flipOverRow  = AddPromptRow(vbox, "keyboard_space_outline.png",   "Flip Over");
         _flipUnderRow = AddPromptRow(vbox, "keyboard_ctrl_outline.png", "Flip Under");
     }
 
@@ -157,5 +175,25 @@ public partial class HUD : CanvasLayer
         var lbl = new Label { Text = text, VerticalAlignment = VerticalAlignment.Center };
         lbl.AddThemeFontSizeOverride("font_size", 13);
         return lbl;
+    }
+
+    private static string BuildObstacleWarningText(CliffSide cliff, MovementLimit limit)
+    {
+        string cliffPart = cliff switch
+        {
+            CliffSide.Left  => "LEFT CLIFF",
+            CliffSide.Right => "RIGHT CLIFF",
+            _               => "",
+        };
+        string limitPart = limit switch
+        {
+            MovementLimit.Roof    => "ROOF",
+            MovementLimit.Plateau => "PLATEAU",
+            _                     => "",
+        };
+
+        if (cliffPart.Length > 0 && limitPart.Length > 0)
+            return $"{cliffPart} + {limitPart}";
+        return cliffPart.Length > 0 ? cliffPart : limitPart;
     }
 }

@@ -20,6 +20,7 @@ config/main_scene="res://scenes/Main.tscn"
 GameConfig="*res://scripts/autoloads/GameConfig.cs"
 GameSession="*res://scripts/autoloads/GameSession.cs"
 TrainSpeedManager="*res://scripts/autoloads/TrainSpeedManager.cs"
+ObstacleManager="*res://scripts/environment/ObstacleManager.cs"
 
 [configuration]
 

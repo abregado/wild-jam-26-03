@@ -50,6 +50,8 @@ public partial class GameConfig : Node
 
     // Environment
     public float PillarSpacing { get; private set; } = 20f;
+    public float SpawnAheadDistance { get; private set; } = 40f;
+    public float DespawnBehindDistance { get; private set; } = 20f;
 
     // Enemies
     public int MaxDronesPerDeployer { get; private set; } = 3;
@@ -69,6 +71,13 @@ public partial class GameConfig : Node
     public float DroneRepositionChance { get; private set; } = 0.4f;
     public float DroneChaseDistance { get; private set; } = 20f;
     public float DroneMaxDeployerDistance { get; private set; } = 50f;
+
+    // Obstacles
+    public float ObstacleSectionMinDuration { get; private set; } = 12f;
+    public float ObstacleSectionMaxDuration { get; private set; } = 25f;
+    public float ObstacleWarningTime { get; private set; } = 4f;
+    public int ObstacleCubePoolSize { get; private set; } = 12;
+    public float ObstacleCubeSpacing { get; private set; } = 6f;
 
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
@@ -173,7 +182,9 @@ public partial class GameConfig : Node
         if (data.TryGetValue("environment", out var envVar))
         {
             var e = envVar.AsGodotDictionary();
-            PillarSpacing = GetFloat(e, "pillar_spacing", PillarSpacing);
+            PillarSpacing          = GetFloat(e, "pillar_spacing",           PillarSpacing);
+            SpawnAheadDistance     = GetFloat(e, "spawn_ahead_distance",     SpawnAheadDistance);
+            DespawnBehindDistance  = GetFloat(e, "despawn_behind_distance",  DespawnBehindDistance);
         }
 
         if (data.TryGetValue("enemies", out var enemiesVar))
@@ -196,6 +207,16 @@ public partial class GameConfig : Node
             DroneRepositionChance = GetFloat(en, "drone_reposition_chance", DroneRepositionChance);
             DroneChaseDistance = GetFloat(en, "drone_chase_distance", DroneChaseDistance);
             DroneMaxDeployerDistance = GetFloat(en, "drone_max_deployer_distance", DroneMaxDeployerDistance);
+        }
+
+        if (data.TryGetValue("obstacles", out var obstaclesVar))
+        {
+            var o = obstaclesVar.AsGodotDictionary();
+            ObstacleSectionMinDuration = GetFloat(o, "section_min_duration", ObstacleSectionMinDuration);
+            ObstacleSectionMaxDuration = GetFloat(o, "section_max_duration", ObstacleSectionMaxDuration);
+            ObstacleWarningTime        = GetFloat(o, "warning_time",         ObstacleWarningTime);
+            ObstacleCubePoolSize       = GetInt  (o, "cube_pool_size",       ObstacleCubePoolSize);
+            ObstacleCubeSpacing        = GetFloat(o, "cube_spacing",         ObstacleCubeSpacing);
         }
 
         if (data.TryGetValue("cargo_types", out var cargoVar))

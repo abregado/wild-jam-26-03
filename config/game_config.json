@@ -43,7 +43,9 @@
     "turret_range": 10.0
   },
   "environment": {
-    "pillar_spacing": 20.0
+    "pillar_spacing": 20.0,
+    "spawn_ahead_distance": 40.0,
+    "despawn_behind_distance": 20.0
   },
   "enemies": {
     "max_drones_per_deployer": 3,
@@ -63,6 +65,13 @@
     "drone_reposition_chance": 0.4,
     "drone_chase_distance": 20.0,
     "drone_max_deployer_distance": 50.0
+  },
+  "obstacles": {
+    "section_min_duration": 12.0,
+    "section_max_duration": 25.0,
+    "warning_time": 4.0,
+    "cube_pool_size": 12,
+    "cube_spacing": 6.0
   },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },

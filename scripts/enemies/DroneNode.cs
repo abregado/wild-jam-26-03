@@ -122,7 +122,11 @@ public partial class DroneNode : Node3D
             float distToDeployer = GlobalPosition.DistanceTo(_deployer.GlobalPosition);
             if (distToDeployer > _config.DroneMaxDeployerDistance)
             {
-                StartReturning();
+                var om = GetNode<ObstacleManager>("/root/ObstacleManager");
+                if (om.ActiveMovementLimit == MovementLimit.Roof)
+                    StartDying();
+                else
+                    StartReturning();
                 return;
             }
         }

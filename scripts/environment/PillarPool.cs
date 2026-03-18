@@ -1,51 +1,65 @@
 using Godot;
 
 /// <summary>
-/// Maintains a pool of ~8 track-support pillars using pure object repositioning (no runtime instancing).
+/// Maintains a pool of track-support pillars using object repositioning (no runtime instancing).
 /// Pillars move in -Z direction (backward) to simulate train moving forward (+Z).
-/// When a pillar's Z position exceeds SpawnAheadZ it's beyond the player (behind them),
-/// so we teleport it back to negative Z (ahead of the train).
 ///
-/// Pillar spacing: 20 units. Pool count: 8.
-/// Pillars sit on both sides of the track (X = ±1.5).
+/// Spawn/despawn distances are config-driven (SpawnAheadDistance, DespawnBehindDistance).
+/// Pool size is computed on first _Process to cover the full train+ahead+behind range.
+/// Deferred init is needed because TrackEnvironment (parent scene) loads before Train in Main.tscn.
 /// </summary>
 public partial class PillarPool : Node3D
 {
-    private const int PoolCount = 8;
     private const float PillarHeight = 9f;
-    private const float TrackY = 7f;          // Track surface Y
+    private const float TrackY = 7f;
     private const float PillarY = TrackY - PillarHeight / 2f;
-    private const float RecycleBehindZ = 10f; // If pillar.Z < -this, it's behind the player
 
-    public const float PillarX = 0f; // Pillars are centred on the track
+    public const float PillarX = 0f;
 
-    private readonly Node3D[] _pillars = new Node3D[PoolCount];
-    private float _moveSpeed;
+    private Node3D[] _pillars = System.Array.Empty<Node3D>();
+    private PackedScene? _pillarScene;
     private float _spacing;
+    private float _despawnZ;
+    private float _moveSpeed;
+    private bool _initialized = false;
 
     public override void _Ready()
     {
-        _spacing = GetNode<GameConfig>("/root/GameConfig").PillarSpacing;
+        var config = GetNode<GameConfig>("/root/GameConfig");
+        _spacing   = config.PillarSpacing;
+        _despawnZ  = -config.DespawnBehindDistance;
+        _pillarScene = GD.Load<PackedScene>("res://assets/models/environment/pillar.glb");
+    }
 
-        var pillarScene = GD.Load<PackedScene>("res://assets/models/environment/pillar.glb");
+    private void Initialize()
+    {
+        var config = GetNode<GameConfig>("/root/GameConfig");
+        var trainNode = GetTree().Root.FindChild("Train", true, false);
+        float locoZ = (trainNode as TrainBuilder)?.LocomotiveZ ?? 100f;
 
-        for (int i = 0; i < PoolCount; i++)
+        float spawnZ   = locoZ + config.SpawnAheadDistance;
+        float totalRange = spawnZ - _despawnZ;
+        int poolCount  = Mathf.CeilToInt(totalRange / _spacing) + 1;
+
+        _pillars = new Node3D[poolCount];
+        for (int i = 0; i < poolCount; i++)
         {
-            Node3D pillar = pillarScene != null
-                ? CreatePillarFromGlb(pillarScene)
+            Node3D pillar = _pillarScene != null
+                ? CreatePillarFromGlb(_pillarScene)
                 : CreatePillarProcedural();
 
-            pillar.Position = new Vector3(0f, PillarY, i * _spacing);
+            pillar.Position = new Vector3(0f, PillarY, spawnZ - i * _spacing);
             AddChild(pillar);
             _pillars[i] = pillar;
         }
+
+        GD.Print($"[PillarPool] Initialized {poolCount} pillars. spawnZ={spawnZ:F0}, despawnZ={_despawnZ:F0}");
+        _initialized = true;
     }
 
     private static Node3D CreatePillarFromGlb(PackedScene scene)
     {
         var pillar = scene.Instantiate<Node3D>();
-        // Godot generates a StaticBody3D from the Body-col mesh node at import time.
-        // Ensure the collision layer matches the world/train layer (layer 1).
         foreach (var child in pillar.GetChildren())
         {
             if (child is StaticBody3D body)
@@ -79,29 +93,22 @@ public partial class PillarPool : Node3D
         return false;
     }
 
-    public void SetMoveSpeed(float speed)
-    {
-        _moveSpeed = speed;
-    }
+    public void SetMoveSpeed(float speed) => _moveSpeed = speed;
 
     public override void _Process(double delta)
     {
+        if (!_initialized) { Initialize(); return; }
         if (_moveSpeed <= 0f) return;
 
         float move = _moveSpeed * (float)delta;
 
         for (int i = 0; i < _pillars.Length; i++)
-        {
-            // Move in -Z direction: pillars come from ahead (+Z) and pass behind (-Z)
             _pillars[i].Position -= new Vector3(0f, 0f, move);
-        }
 
-        // Recycle pillars that have gone behind the player
         for (int i = 0; i < _pillars.Length; i++)
         {
-            if (_pillars[i].Position.Z < -RecycleBehindZ)
+            if (_pillars[i].Position.Z < _despawnZ)
             {
-                // Find the furthest-ahead pillar (most positive Z) and place after it
                 float maxZ = float.MinValue;
                 foreach (var p in _pillars)
                     if (p.Position.Z > maxZ) maxZ = p.Position.Z;

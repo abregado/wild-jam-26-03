@@ -48,11 +48,14 @@ public partial class PlayerCar : Node3D
     private const float PillarCollisionRadius = 2.5f; // world-Z half-range for pillar collision
 
     private PillarPool? _pillarPool;
+    private ObstacleManager? _obstacleManager;
     private bool _canSwitchUnder = true;
+    private bool _canSwitchOver = true;
     private Shield? _shield;
 
     public float RelativeVelocity => _relativeVelocity;
     public bool CanSwitchUnder => _canSwitchUnder;
+    public bool CanSwitchOver => _canSwitchOver;
     public bool IsOnRightSide => _onRightSide;
 
     public override void _Ready()
@@ -64,6 +67,9 @@ public partial class PlayerCar : Node3D
 
         RotationDegrees = new Vector3(0, 90f, 0); // fixed: car always faces -X toward train
         _pillarPool = GetTree().Root.FindChild("PillarPool", true, false) as PillarPool;
+        _obstacleManager = GetNodeOrNull<ObstacleManager>("/root/ObstacleManager");
+        if (_obstacleManager != null)
+            _obstacleManager.SectionActivated += OnObstacleSectionActivated;
 
         _shield = new Shield();
         AddChild(_shield);
@@ -178,10 +184,18 @@ public partial class PlayerCar : Node3D
         // Update pole-clearance check every frame for HUD
         _canSwitchUnder = !_isSwitchingSides && PredictUnderArcClear();
 
+        // Obstacle manager overrides
+        bool anyCliff  = _obstacleManager != null && _obstacleManager.ActiveCliffSide != CliffSide.None;
+        bool roofUp    = _obstacleManager != null && _obstacleManager.ActiveMovementLimit == MovementLimit.Roof;
+        bool plateauUp = _obstacleManager != null && _obstacleManager.ActiveMovementLimit == MovementLimit.Plateau;
+        _canSwitchOver = !anyCliff && !roofUp;
+        if (anyCliff || plateauUp)
+            _canSwitchUnder = false;
+
         // Trigger side switch
         if (!_isSwitchingSides)
         {
-            if (Input.IsActionJustPressed("switch_side_over"))
+            if (Input.IsActionJustPressed("switch_side_over") && _canSwitchOver)
                 StartSideSwitch(+1);
             else if (Input.IsActionJustPressed("switch_side_under") && _canSwitchUnder)
                 StartSideSwitch(-1);
@@ -238,6 +252,24 @@ public partial class PlayerCar : Node3D
 
         return !_pillarPool.HasPillarNearZ(targetZ1, PillarCollisionRadius)
             && !_pillarPool.HasPillarNearZ(targetZ2, PillarCollisionRadius);
+    }
+
+    private void OnObstacleSectionActivated(long cliffL, long limitL)
+    {
+        var cliff = (CliffSide)cliffL;
+        var limit = (MovementLimit)limitL;
+
+        if (_isSwitchingSides || cliff == CliffSide.None) return;
+
+        bool wrongSide = (cliff == CliffSide.Right &&  _onRightSide)
+                      || (cliff == CliffSide.Left  && !_onRightSide);
+        if (!wrongSide) return;
+
+        // Pick safe arc direction based on what's blocked
+        int dir = (limit == MovementLimit.Roof)    ? -1  // can't go over → go under
+                : (limit == MovementLimit.Plateau)  ? +1  // can't go under → go over
+                : (_canSwitchUnder ? -1 : +1);            // prefer under, fall back over
+        StartSideSwitch(dir);
     }
 
     private void StartSideSwitch(int direction)

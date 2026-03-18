@@ -99,6 +99,13 @@ public partial class DeployerNode : Node3D
 
     private void SpawnDrone()
     {
+        var om = GetNode<ObstacleManager>("/root/ObstacleManager");
+        if (om.ActiveMovementLimit == MovementLimit.Roof)
+        {
+            _spawnCooldown = 1f; // retry after a short delay
+            return;
+        }
+
         _spawnCooldown = _config.DeployerCooldown;
         _livingDrones++;
 
