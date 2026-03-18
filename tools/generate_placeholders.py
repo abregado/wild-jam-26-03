@@ -48,7 +48,7 @@ def box_geo(w, h, d):
     indices = []
     for i in range(6):
         b = i * 4
-        indices += [b, b+1, b+2,  b, b+2, b+3]
+        indices += [b, b+2, b+1,  b, b+3, b+2]
     return verts, indices
 
 
@@ -69,8 +69,8 @@ def cylinder_geo(radius, height, segments=16):
     for i in range(segments):
         n = (i + 1) % segments
         indices += [i, n, segments+i,  n, segments+n, segments+i]  # side
-        indices += [tc, i, n]                                        # top cap
-        indices += [bc, segments+n, segments+i]                      # bot cap
+        indices += [tc, n, i]                                        # top cap
+        indices += [bc, segments+i, segments+n]                      # bot cap
     return verts, indices
 
 
@@ -91,8 +91,8 @@ def sphere_geo(radius, segments=16, rings=8):
             ns = (s + 1) % segments
             i0, i1 =  r      * segments + s,   r      * segments + ns
             i2, i3 = (r + 1) * segments + s,  (r + 1) * segments + ns
-            if r > 0:       indices += [i0, i2, i1]
-            if r < rings-1: indices += [i1, i2, i3]
+            if r > 0:       indices += [i0, i1, i2]
+            if r < rings-1: indices += [i1, i3, i2]
     return verts, indices
 
 
@@ -120,20 +120,20 @@ def capsule_geo(radius, total_height, segments=16, rings=4):
             ns = (s + 1) % segments
             i0, i1 =  r*segments+s,   r*segments+ns
             i2, i3 = (r+1)*segments+s, (r+1)*segments+ns
-            indices += [i0, i2, i1,  i1, i2, i3]
+            indices += [i0, i1, i2,  i1, i3, i2]
     for s in range(segments):           # equator bridge
         ns = (s + 1) % segments
         t0, t1 = rings*segments+s, rings*segments+ns
-        b0, b1 = offset+s, offset+ns
-        indices += [t0, b0, t1,  t1, b0, b1]
-    for r in range(rings):              # bottom hemisphere quads (reversed)
+        b0, b1 = offset + rings*segments+s, offset + rings*segments+ns
+        indices += [t0, t1, b0,  t1, b1, b0]
+    for r in range(rings):              # bottom hemisphere quads
         for s in range(segments):
             ns = (s + 1) % segments
             i0 = offset + r*segments+s
             i1 = offset + r*segments+ns
             i2 = offset + (r+1)*segments+s
             i3 = offset + (r+1)*segments+ns
-            indices += [i0, i1, i2,  i1, i3, i2]
+            indices += [i0, i2, i1,  i1, i2, i3]
     return verts, indices
 
 
