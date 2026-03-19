@@ -38,6 +38,13 @@ public partial class Turret : Node3D
 
     private float _fireCooldown;
     private float _beaconCooldown;
+    private bool _fireEnabled = true;
+
+    public void SetFireEnabled(bool value)
+    {
+        _fireEnabled = value;
+        if (!value) _burstRemaining = 0; // cancel any in-progress burst
+    }
 
     private int _burstRemaining;
     private float _burstDelayTimer;
@@ -194,14 +201,14 @@ public partial class Turret : Node3D
         }
 
         // 5. Trigger new burst
-        bool fireInput = _config.AutoFire
+        bool fireInput = _fireEnabled && (_config.AutoFire
             ? Input.IsActionPressed("fire_primary")
-            : Input.IsActionJustPressed("fire_primary");
+            : Input.IsActionJustPressed("fire_primary"));
         if (fireInput && _fireCooldown <= 0f && _burstRemaining <= 0)
             StartBurst();
 
         // 6. Beacon
-        if (Input.IsActionJustPressed("fire_beacon") && _beaconCooldown <= 0f)
+        if (_fireEnabled && Input.IsActionJustPressed("fire_beacon") && _beaconCooldown <= 0f)
             FireBeacon();
     }
 

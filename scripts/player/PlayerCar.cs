@@ -343,12 +343,14 @@ public partial class PlayerCar : Node3D
         _inputEnabled = false;
         _captureDesired = false;
         Input.MouseMode = Input.MouseModeEnum.Visible;
+        _turret.SetFireEnabled(false);
     }
 
     public void EnableInput()
     {
         _inputEnabled = true;
         _captureDesired = true;
+        _turret.SetFireEnabled(true);
     }
 
     public float GetDistanceBehindFront() => _trainFrontZ - Position.Z;

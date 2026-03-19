@@ -36,12 +36,13 @@ public partial class CutsceneManager : Node
     private RingIndicator _ring          = null!;
 
     // ── Scene references ───────────────────────────────────────────────────
-    private TrainBuilder _trainBuilder   = null!;
-    private PlayerCar    _playerCar      = null!;
-    private Camera3D     _playerCamera   = null!;
-    private HUD          _hud            = null!;
-    private Node3D       _obstacleSystem = null!;
-    private LevelManager _levelManager   = null!;
+    private TrainBuilder   _trainBuilder   = null!;
+    private PlayerCar      _playerCar      = null!;
+    private Camera3D       _playerCamera   = null!;
+    private HUD            _hud            = null!;
+    private Node3D         _obstacleSystem = null!;
+    private LevelManager   _levelManager   = null!;
+    private MeshInstance3D? _turretDome    = null;
 
     // ── Camera tracking ────────────────────────────────────────────────────
     private Vector3 _desiredLook;   // where we want to look (set instantly)
@@ -118,6 +119,7 @@ public partial class CutsceneManager : Node
         _obstacleSystem = GetParent().GetNode<Node3D>("ObstacleSystem");
         _levelManager   = GetParent().GetNode<LevelManager>("LevelManager");
         _playerCamera   = _playerCar.GetNode<Camera3D>("Camera3D");
+        _turretDome     = _playerCar.GetNodeOrNull<MeshInstance3D>("TurretDome");
 
         // ── Disable everything until cutscene ends ───────────────────────
         _playerCar.Visible = false;
@@ -204,6 +206,7 @@ public partial class CutsceneManager : Node
         float playerZ = locoZ - 4f;
         _playerCar.Position = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
         _playerCar.Visible  = true;
+        if (_turretDome != null) _turretDome.Visible = true;
 
         // Camera moves to behind the caboose, looking toward the player car.
         Vector3 behindPos = new(0f, 16f, cabooseZ - 18f);
@@ -234,6 +237,7 @@ public partial class CutsceneManager : Node
         // ── Phase 4: Hand control to player ──────────────────────────────
         _cutsceneRunning = false;
         _panel.Visible   = false;
+        if (_turretDome != null) _turretDome.Visible = false;
 
         _playerCamera.MakeCurrent();
         _playerCar.EnableInput();
@@ -262,6 +266,7 @@ public partial class CutsceneManager : Node
         float playerZ = locoZ - 4f;
         _playerCar.Position = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
         _playerCar.Visible  = true;
+        if (_turretDome != null) _turretDome.Visible = true;
 
         // Wait one more frame for the player car's children to inherit the new transform.
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -297,6 +302,7 @@ public partial class CutsceneManager : Node
 
         // ── Phase 4: Hand control to player ──────────────────────────────
         _cutsceneRunning = false;
+        if (_turretDome != null) _turretDome.Visible = false;
 
         _playerCamera.MakeCurrent();
         _playerCar.EnableInput();
