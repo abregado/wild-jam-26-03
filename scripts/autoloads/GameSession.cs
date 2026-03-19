@@ -19,6 +19,10 @@ public partial class GameSession : Node
     // Persistent across raids (never cleared by Reset)
     public Dictionary<string, int> PlayerResources { get; private set; } = new();
 
+    /// <summary>True only on the very first raid; false for every subsequent one.</summary>
+    public bool IsFirstRaid { get; private set; } = true;
+    public void MarkRaidStarted() => IsFirstRaid = false;
+
     // Legacy aggregate (kept for compatibility)
     public Dictionary<string, int> CollectedCargo { get; private set; } = new();
     public int ContainersDetached { get; private set; }

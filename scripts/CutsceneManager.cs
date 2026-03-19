@@ -126,7 +126,16 @@ public partial class CutsceneManager : Node
         _obstacleSystem.ProcessMode = ProcessModeEnum.Disabled;
 
         _cutsceneRunning = true;
-        _ = PlayCutscene();
+        var session = GetNode<GameSession>("/root/GameSession");
+        if (session.IsFirstRaid)
+        {
+            session.MarkRaidStarted();
+            _ = PlayCutscene();
+        }
+        else
+        {
+            _ = PlayFlyIn();
+        }
     }
 
     // Smoothly track the desired look target every frame.
@@ -213,6 +222,15 @@ public partial class CutsceneManager : Node
         HideText();
         await Pause(0.2f);
 
+        // ── Blend into player camera ──────────────────────────────────────
+        // Tween to the exact position/orientation of the player camera so the
+        // switch to _playerCamera.MakeCurrent() is seamless.
+        Vector3 playerCamPos        = _playerCamera.GlobalPosition;
+        Vector3 playerCamLookTarget = playerCamPos - _playerCamera.GlobalBasis.Z * 20f;
+        _desiredLook = playerCamLookTarget;
+        await MoveTo(playerCamPos, 1.2f);
+        _smoothLook = playerCamLookTarget; // eliminate residual lerp error
+
         // ── Phase 4: Hand control to player ──────────────────────────────
         _cutsceneRunning = false;
         _panel.Visible   = false;
@@ -224,6 +242,69 @@ public partial class CutsceneManager : Node
 
         _levelManager.OnCutsceneDone();
         GD.Print("[CutsceneManager] Cutscene complete.");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    /// <summary>
+    /// Fly-in for raids 2+: sweeps from behind the caboose, arcs over the train,
+    /// then descends to the player camera's position and blends into it.
+    /// No text, no waypoints — pure cinematic camera move.
+    /// </summary>
+    private async System.Threading.Tasks.Task PlayFlyIn()
+    {
+        // Wait one frame so all node transforms are fully propagated.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        float locoZ    = _trainBuilder.LocomotiveZ;
+        float cabooseZ = _trainBuilder.CabooseZ;
+
+        // Place the player car immediately so _playerCamera.GlobalTransform is valid.
+        float playerZ = locoZ - 4f;
+        _playerCar.Position = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
+        _playerCar.Visible  = true;
+
+        // Wait one more frame for the player car's children to inherit the new transform.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        // Snapshot player camera world transform before any cutscene camera movement.
+        Vector3 playerCamPos = _playerCamera.GlobalPosition;
+        // Look target that matches the player camera's viewing direction.
+        Vector3 playerCamLookTarget = playerCamPos - _playerCamera.GlobalBasis.Z * 20f;
+
+        // ── Phase 1: Start behind and above the caboose ───────────────────
+        Vector3 startPos = new(-22f, 22f, cabooseZ - 18f);
+        _cam.GlobalPosition = startPos;
+        _desiredLook = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
+        _smoothLook  = _desiredLook;
+        try { _cam.LookAt(_desiredLook, Vector3.Up); } catch { }
+
+        await Pause(0.1f);
+
+        // ── Phase 2: Arc over the middle of the train ─────────────────────
+        // Camera rises up and crosses from behind the train to the right side.
+        float midZ    = (locoZ + cabooseZ) * 0.5f;
+        Vector3 arcPos = new(4f, 26f, midZ);
+        _desiredLook = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
+        await MoveTo(arcPos, 2.2f);
+
+        // ── Phase 3: Descend toward the player camera ─────────────────────
+        // Gradually rotate to align with what the player camera sees.
+        _desiredLook = playerCamLookTarget;
+        await MoveTo(playerCamPos, 2.0f);
+
+        // Snap look exactly so there is no residual rotation error at handover.
+        _smoothLook = playerCamLookTarget;
+
+        // ── Phase 4: Hand control to player ──────────────────────────────
+        _cutsceneRunning = false;
+
+        _playerCamera.MakeCurrent();
+        _playerCar.EnableInput();
+        _hud.Visible = true;
+        _obstacleSystem.ProcessMode = ProcessModeEnum.Inherit;
+
+        _levelManager.OnCutsceneDone();
+        GD.Print("[CutsceneManager] Fly-in complete.");
     }
 
     // ───────────────────────────────────────────────────────────────────────
