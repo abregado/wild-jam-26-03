@@ -7,13 +7,14 @@ using Godot;
 /// </summary>
 public partial class RingIndicator : Control
 {
-    public Node3D?   Target    { get; set; }
-    public Camera3D? Cam       { get; set; }
-    public float     Radius    { get; set; } = 55f;
-    public float     LineWidth { get; set; } = 3f;
-    public Color     RingColor { get; set; } = new Color(1f, 0.88f, 0.2f, 0.92f);
+    public Node3D?   Target      { get; set; }
+    public Camera3D? Cam         { get; set; }
+    public float     WorldRadius { get; set; } = 1.5f;
+    public float     LineWidth   { get; set; } = 3f;
+    public Color     RingColor   { get; set; } = new Color(1f, 0.88f, 0.2f, 0.92f);
 
     private float _time;
+    private float _radius = 55f;
 
     public override void _Process(double delta)
     {
@@ -32,6 +33,12 @@ public partial class RingIndicator : Control
         Visible = true;
         Position = Cam.UnprojectPosition(Target.GlobalPosition);
 
+        // Scale ring radius to match the world-space size of the target.
+        float dist     = (Target.GlobalPosition - Cam.GlobalPosition).Length();
+        Vector2 vSize  = GetViewport().GetVisibleRect().Size;
+        float focalLen = vSize.X / (2f * Mathf.Tan(Mathf.DegToRad(Cam.Fov * 0.5f)));
+        _radius = Mathf.Clamp((WorldRadius / Mathf.Max(dist, 0.01f)) * focalLen + 12f, 20f, 350f);
+
         _time += (float)delta;
         float bounce = 1f + 0.14f * Mathf.Sin(_time * Mathf.Tau * 1.3f);
         Scale = new Vector2(bounce, bounce);
@@ -41,6 +48,6 @@ public partial class RingIndicator : Control
 
     public override void _Draw()
     {
-        DrawArc(Vector2.Zero, Radius, 0f, Mathf.Tau, 64, RingColor, LineWidth, true);
+        DrawArc(Vector2.Zero, _radius, 0f, Mathf.Tau, 64, RingColor, LineWidth, true);
     }
 }

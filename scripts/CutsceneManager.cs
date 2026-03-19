@@ -44,8 +44,11 @@ public partial class CutsceneManager : Node
     private LevelManager _levelManager   = null!;
 
     // ── Camera tracking ────────────────────────────────────────────────────
-    private Vector3 _lookTarget;
+    private Vector3 _desiredLook;   // where we want to look (set instantly)
+    private Vector3 _smoothLook;    // actual LookAt target (lerped each frame)
     private bool    _cutsceneRunning;
+
+    private const float LookLerpSpeed = 2.8f; // roughly 0.5 s to cover most of the rotation
 
     // ── Player advance input ───────────────────────────────────────────────
     private bool _advanceRequested;
@@ -126,11 +129,12 @@ public partial class CutsceneManager : Node
         _ = PlayCutscene();
     }
 
-    // Keep camera oriented toward _lookTarget every frame while running.
-    public override void _Process(double _)
+    // Smoothly track the desired look target every frame.
+    public override void _Process(double delta)
     {
         if (!_cutsceneRunning) return;
-        try { _cam.LookAt(_lookTarget, Vector3.Up); } catch { }
+        _smoothLook = _smoothLook.Lerp(_desiredLook, (float)delta * LookLerpSpeed);
+        try { _cam.LookAt(_smoothLook, Vector3.Up); } catch { }
     }
 
     // Detect Space or LMB to advance through hold phases.
@@ -160,27 +164,31 @@ public partial class CutsceneManager : Node
         // ── Phase 1: Initial sweep from behind the train to loco overview ─
         Vector3 startPos = new(-22f, 22f, cabooseZ - 18f);
         _cam.GlobalPosition = startPos;
-        _lookTarget = new Vector3(0f, CarriageYMid, locoZ - 5f);
-        try { _cam.LookAt(_lookTarget, Vector3.Up); } catch { }
+        // Seed both fields so _Process doesn't lerp in from Vector3.Zero.
+        _desiredLook = new Vector3(0f, CarriageYMid, locoZ - 5f);
+        _smoothLook  = _desiredLook;
+        try { _cam.LookAt(_desiredLook, Vector3.Up); } catch { }
 
         await Pause(0.1f);
 
         Vector3 locoViewPos    = new(-10f, 16f, locoZ + 8f);
         Vector3 locoLookTarget = new(0f, CarriageYMid + 1f, locoZ - 14f);
-        _lookTarget = locoLookTarget;
+        _desiredLook = locoLookTarget;
         await MoveTo(locoViewPos, SweepTime * 2f);
         await Pause(0.5f);
 
         // ── Phase 2: Waypoints ────────────────────────────────────────────
+        // Setting _desiredLook before MoveTo means the camera rotates toward the
+        // new target *while* it is already travelling — the smooth lerp in _Process
+        // blends the rotation so there is no snap between waypoints.
         var waypoints = BuildWaypoints(config);
-        foreach (var (camPos, lookTarget, text, ringTarget) in waypoints)
+        foreach (var (camPos, lookTarget, text, ringTarget, worldRadius) in waypoints)
         {
-            _lookTarget = lookTarget;
+            _desiredLook = lookTarget;
             await MoveTo(camPos, SweepTime);
-            ShowText(text, ringTarget);
+            ShowText(text, ringTarget, worldRadius);
             await HoldOrAdvance(HoldTime);
             HideText();
-            await Pause(0.15f);
         }
 
         // ── Phase 3: Reveal player car ────────────────────────────────────
@@ -190,17 +198,17 @@ public partial class CutsceneManager : Node
 
         // Camera moves to behind the caboose, looking toward the player car.
         Vector3 behindPos = new(0f, 16f, cabooseZ - 18f);
-        _lookTarget = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
+        _desiredLook = new Vector3(PlayerCar.XOffset, _playerCar.YHeight, playerZ);
         await MoveTo(behindPos, 2.0f);
         await Pause(0.2f);
 
-        // Camera moves to focus on the player car (car in left half, camera on right side).
-        Vector3 focusPos  = _playerCar.GlobalPosition + new Vector3(16f, 5f, 3f);
-        Vector3 focusLook = _playerCar.GlobalPosition + new Vector3(-10f, 0f, 0f);
-        _lookTarget = focusLook;
+        // Camera moves to focus on the player car (car in left half of the screen).
+        var (focusPos, focusLook) = ComputeFraming(
+            _playerCar.GlobalPosition, new Vector3(16f, 5f, 3f), _cam.Fov);
+        _desiredLook = focusLook;
         await MoveTo(focusPos, 1.5f);
 
-        ShowText(config.CutsceneTextFinal, _playerCar);
+        ShowText(config.CutsceneTextFinal, _playerCar, 1.5f);
         await HoldOrAdvance(HoldTime);
         HideText();
         await Pause(0.2f);
@@ -219,35 +227,40 @@ public partial class CutsceneManager : Node
     }
 
     // ───────────────────────────────────────────────────────────────────────
-    // Returns (camPos, lookTarget, text, ringTarget) sorted loco → caboose.
-    private List<(Vector3 camPos, Vector3 lookTarget, string text, Node3D? ringTarget)>
+    // Returns (camPos, lookTarget, text, ringTarget, worldRadius) sorted loco → caboose.
+    private List<(Vector3 camPos, Vector3 lookTarget, string text, Node3D? ringTarget, float worldRadius)>
         BuildWaypoints(GameConfig config)
     {
-        var entries = new List<(Vector3, Vector3, string, Node3D?, float sortZ)>();
+        var entries = new List<(Vector3, Vector3, string, Node3D?, float worldRadius, float sortZ)>();
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
 
-        // Containers on the left side (negative X).
+        // Containers on the left side (negative X), front-to-back order.
         var leftContainers = _trainBuilder.AllContainers
             .Where(c => c.GlobalPosition.X < 0f)
             .OrderByDescending(c => c.GlobalPosition.Z)
             .ToList();
 
-        // Waypoint A — first left non-Scrap container
+        // Waypoint A — first left non-Scrap container (highest Z).
         var nonScrap = leftContainers.FirstOrDefault(c => !c.IsScrap);
         if (nonScrap != null)
         {
-            var (cam, look) = CamForSide(nonScrap.GlobalPosition);
-            entries.Add((cam, look, config.CutsceneTextContainer, nonScrap, nonScrap.GlobalPosition.Z));
+            var (cam, look) = ComputeFraming(nonScrap.GlobalPosition, new Vector3(-12f, 5f, 2f), _cam.Fov);
+            entries.Add((cam, look, config.CutsceneTextContainer, nonScrap, 1.5f, nonScrap.GlobalPosition.Z));
         }
 
-        // Waypoint B — first left Scrap container
-        var scrap = leftContainers.FirstOrDefault(c => c.IsScrap);
+        // Waypoint B — first left Scrap container that comes *after* (lower Z than) Waypoint A.
+        float nonScrapZ  = nonScrap?.GlobalPosition.Z ?? float.MaxValue;
+        var   scrap      = leftContainers.FirstOrDefault(c => c.IsScrap && c.GlobalPosition.Z < nonScrapZ);
+        // Fallback: any scrap on the left if none are behind Waypoint A.
+        scrap ??= leftContainers.FirstOrDefault(c => c.IsScrap && c != nonScrap);
         if (scrap != null)
         {
-            var (cam, look) = CamForSide(scrap.GlobalPosition);
-            entries.Add((cam, look, config.CutsceneTextScrap, scrap, scrap.GlobalPosition.Z));
+            var (cam, look) = ComputeFraming(scrap.GlobalPosition, new Vector3(-12f, 5f, 2f), _cam.Fov);
+            entries.Add((cam, look, config.CutsceneTextScrap, scrap, 1.5f, scrap.GlobalPosition.Z));
         }
 
-        // Waypoint C — topmost clamp of the first left container
+        // Waypoint C — topmost clamp of the first left container.
         var firstLeft = leftContainers.FirstOrDefault();
         if (firstLeft != null)
         {
@@ -257,52 +270,57 @@ public partial class CutsceneManager : Node
                 .FirstOrDefault();
             if (topClamp != null)
             {
-                var (cam, look) = CamForSide(topClamp.GlobalPosition);
-                entries.Add((cam, look, config.CutsceneTextClamp, topClamp, topClamp.GlobalPosition.Z));
+                var (cam, look) = ComputeFraming(topClamp.GlobalPosition, new Vector3(-12f, 5f, 2f), _cam.Fov);
+                entries.Add((cam, look, config.CutsceneTextClamp, topClamp, 0.5f, topClamp.GlobalPosition.Z));
             }
         }
 
-        // Waypoint D — first deployer (highest Z = closest to loco)
-        var deployer = _trainBuilder.AllDeployers
-            .OrderByDescending(d => d.GlobalPosition.Z)
-            .FirstOrDefault();
-        if (deployer != null)
+        // Waypoint D — random deployer.
+        var deployers = _trainBuilder.AllDeployers;
+        if (deployers.Count > 0)
         {
-            var (cam, look) = CamForSide(deployer.GlobalPosition);
-            entries.Add((cam, look, config.CutsceneTextDeployer, deployer, deployer.GlobalPosition.Z));
+            var deployer = deployers[rng.RandiRange(0, deployers.Count - 1)];
+            var (cam, look) = ComputeFraming(deployer.GlobalPosition, new Vector3(-12f, 5f, 2f), _cam.Fov);
+            entries.Add((cam, look, config.CutsceneTextDeployer, deployer, 0.7f, deployer.GlobalPosition.Z));
         }
 
-        // Waypoint E — first roof turret
-        var roofTurret = _trainBuilder.AllRoofTurrets
-            .OrderByDescending(t => t.GlobalPosition.Z)
-            .FirstOrDefault();
-        if (roofTurret != null)
+        // Waypoint E — random roof turret.
+        var roofTurrets = _trainBuilder.AllRoofTurrets;
+        if (roofTurrets.Count > 0)
         {
-            var (cam, look) = CamForSide(roofTurret.GlobalPosition);
-            entries.Add((cam, look, config.CutsceneTextTurret, roofTurret, roofTurret.GlobalPosition.Z));
+            var roofTurret = roofTurrets[rng.RandiRange(0, roofTurrets.Count - 1)];
+            var (cam, look) = ComputeFraming(roofTurret.GlobalPosition, new Vector3(-12f, 5f, 2f), _cam.Fov);
+            entries.Add((cam, look, config.CutsceneTextTurret, roofTurret, 0.7f, roofTurret.GlobalPosition.Z));
         }
 
-        // Waypoint F — caboose
+        // Waypoint F — caboose.
         if (_trainBuilder.CabooseNode != null)
         {
             Vector3 caboosePos = _trainBuilder.CabooseNode.GlobalPosition;
-            var (cam, look) = CamForCaboose(caboosePos);
-            entries.Add((cam, look, config.CutsceneTextCaboose, _trainBuilder.CabooseNode, caboosePos.Z));
+            var (cam, look) = ComputeFraming(caboosePos, new Vector3(-10f, 6f, -8f), _cam.Fov);
+            entries.Add((cam, look, config.CutsceneTextCaboose, _trainBuilder.CabooseNode, 4.5f, caboosePos.Z));
         }
 
         // Sort descending by Z so the camera sweeps from locomotive toward caboose.
         entries.Sort((a, b) => b.sortZ.CompareTo(a.sortZ));
-        return entries.Select(e => (e.Item1, e.Item2, e.Item3, e.Item4)).ToList();
+        return entries.Select(e => (e.Item1, e.Item2, e.Item3, e.Item4, e.Item5)).ToList();
     }
 
-    /// Camera positioned to the left of the target; looks rightward so the target
-    /// falls in the left half of the frame.
-    private static (Vector3 cam, Vector3 look) CamForSide(Vector3 target) =>
-        (target + new Vector3(-12f, 5f, 2f), target + new Vector3(9f, 0f, 0f));
-
-    /// Special framing for the caboose: camera behind and to the left.
-    private static (Vector3 cam, Vector3 look) CamForCaboose(Vector3 target) =>
-        (target + new Vector3(-10f, 6f, -8f), target + new Vector3(6f, 1f, 4f));
+    /// Positions the camera at <paramref name="target"/> + <paramref name="camOffset"/> and computes
+    /// a look-at point so the target lands at (0.25 W, 0.5 H) — the centre of the left half.
+    private static (Vector3 cam, Vector3 look) ComputeFraming(Vector3 target, Vector3 camOffset, float fovDeg)
+    {
+        Vector3 camPos  = target + camOffset;
+        Vector3 toT     = target - camPos;
+        float   dist    = toT.Length();
+        Vector3 forward = toT / dist;
+        // Godot LookAt convention: right = normalize(Up × -forward) — same cross as camera's basis.X.
+        Vector3 camRight = Vector3.Up.Cross(-forward).Normalized();
+        float   halfFov  = Mathf.DegToRad(fovDeg * 0.5f);
+        // Shift look point rightward by half a half-screen so target sits at x=0.25 of full width.
+        Vector3 lookAt   = target + camRight * (0.5f * Mathf.Tan(halfFov) * dist);
+        return (camPos, lookAt);
+    }
 
     // ───────────────────────────────────────────────────────────────────────
     private async System.Threading.Tasks.Task MoveTo(Vector3 targetPos, float duration)
@@ -330,12 +348,13 @@ public partial class CutsceneManager : Node
     private async System.Threading.Tasks.Task Pause(float seconds) =>
         await ToSignal(GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
 
-    private void ShowText(string text, Node3D? ringTarget = null)
+    private void ShowText(string text, Node3D? ringTarget = null, float worldRadius = 1.5f)
     {
-        _mainLabel.Text  = text;
-        _panel.Visible   = true;
-        _ring.Target     = ringTarget;
-        _ring.Visible    = ringTarget != null;
+        _mainLabel.Text      = text;
+        _panel.Visible       = true;
+        _ring.WorldRadius    = worldRadius;
+        _ring.Target         = ringTarget;
+        _ring.Visible        = ringTarget != null;
     }
 
     private void HideText()
