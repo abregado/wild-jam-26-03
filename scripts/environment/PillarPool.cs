@@ -10,12 +10,12 @@ using Godot;
 /// </summary>
 public partial class PillarPool : Node3D
 {
-    private const float PillarHeight = 6.0f;  // shorter so top sits just below the track
+    private const float PillarHeight = 6.0f;
     private const float TrackY = 7f;
-    private const float PillarY = TrackY - PillarHeight / 2f - 0.5f; // 0.5 extra clearance below track
 
     public const float PillarX = 0f;
 
+    private float _pillarY;
     private Node3D[] _pillars = System.Array.Empty<Node3D>();
     private PackedScene? _pillarScene;
     private float _spacing;
@@ -31,6 +31,7 @@ public partial class PillarPool : Node3D
         _spacing   = config.PillarSpacing;
         _xSpread   = config.PillarXSpread;
         _despawnZ  = -config.DespawnBehindDistance;
+        _pillarY   = TrackY + config.PillarYOffset;
         _rng.Randomize();
         _pillarScene = GD.Load<PackedScene>("res://assets/models/environment/pillar.glb");
     }
@@ -52,7 +53,7 @@ public partial class PillarPool : Node3D
                 ? CreatePillarFromGlb(_pillarScene)
                 : CreatePillarProcedural();
 
-            pillar.Position = new Vector3(_rng.RandfRange(-_xSpread, _xSpread), PillarY, spawnZ - i * _spacing);
+            pillar.Position = new Vector3(_rng.RandfRange(-_xSpread, _xSpread), _pillarY, spawnZ - i * _spacing);
             AddChild(pillar);
             _pillars[i] = pillar;
         }

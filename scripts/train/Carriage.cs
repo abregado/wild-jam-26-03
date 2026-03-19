@@ -16,6 +16,9 @@ public partial class Carriage : Node3D
     public List<DeployerNode> Deployers { get; } = new();
     public List<RoofTurretNode> RoofTurrets { get; } = new();
 
+    /// <summary>Length of this carriage body along Z (set by SetSlotCount).</summary>
+    public float BodyLength { get; private set; } = 4.0f;
+
     private static readonly Color CarriageColor = new(0.1f, 0.3f, 0.85f);
 
     // Carriage body dimensions
@@ -36,6 +39,9 @@ public partial class Carriage : Node3D
     /// </summary>
     public void SetSlotCount(int slots)
     {
+        // Body length = slots × ContainerDepth + gaps between slots + end margin
+        BodyLength = slots * 3.0f + (slots - 1) * 0.3f + 1.0f;
+
         var meshSlot = GetNodeOrNull<MeshInstance3D>("MeshSlot");
         if (meshSlot == null) return;
 
@@ -51,26 +57,24 @@ public partial class Carriage : Node3D
                 meshSlot.Mesh = body.Mesh;
                 meshSlot.MaterialOverride = new StandardMaterial3D { AlbedoColor = CarriageColor };
                 root.QueueFree();
-                UpdateCollision(slots);
+                UpdateCollision();
                 return;
             }
             root.QueueFree();
         }
 
-        // Procedural fallback: scale Z length proportionally to slot count
-        float zLen = 4.0f * slots;
-        meshSlot.Mesh = new BoxMesh { Size = new Vector3(Width, Height, zLen) };
+        // Procedural fallback: use computed BodyLength for Z
+        meshSlot.Mesh = new BoxMesh { Size = new Vector3(Width, Height, BodyLength) };
         meshSlot.MaterialOverride = new StandardMaterial3D { AlbedoColor = CarriageColor };
-        UpdateCollision(slots);
+        UpdateCollision();
     }
 
-    private void UpdateCollision(int slots)
+    private void UpdateCollision()
     {
-        float zLen = 4.0f * slots;
         var body = GetNodeOrNull<StaticBody3D>("CarriageBody");
         if (body == null) return;
         var col = body.GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
         if (col?.Shape is BoxShape3D box)
-            box.Size = new Vector3(Width, Height, zLen);
+            box.Size = new Vector3(Width, Height, BodyLength);
     }
 }

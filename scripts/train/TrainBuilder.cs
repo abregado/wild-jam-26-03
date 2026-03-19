@@ -95,20 +95,23 @@ public partial class TrainBuilder : Node3D
         {
             var carriageInstance = (Carriage)_carriageScene.Instantiate();
             carriageInstance.Name = $"Carriage{i}";
-            float zCenter = currentZ + CarriageLength / 2f;
+
+            // Randomise container count first so we know the body length for spacing
+            int slotsThisCarriage = rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage);
+            carriageInstance.SetSlotCount(slotsThisCarriage);
+            float bodyLen = carriageInstance.BodyLength;
+
+            float zCenter = currentZ + bodyLen / 2f;
             carriageInstance.Position = new Vector3(0, CarriageY, zCenter);
             AddChild(carriageInstance);
             _carriages.Add(carriageInstance);
 
-            // Randomise container count per carriage (same count both sides so mesh matches)
-            int slotsThisCarriage = rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage);
-            carriageInstance.SetSlotCount(slotsThisCarriage);
             AttachContainers(carriageInstance, slotsThisCarriage, rng);
 
             int numSlots = rng.RandiRange(1, _config.MaxDeployersPerCarriage);
-            AttachRoofSlots(carriageInstance, numSlots, rng);
+            AttachRoofSlots(carriageInstance, numSlots, rng, bodyLen);
 
-            currentZ += CarriageLength + CarGap;
+            currentZ += bodyLen + CarGap;
         }
 
         // --- Locomotive ---
@@ -131,14 +134,15 @@ public partial class TrainBuilder : Node3D
                 if (c.RoofTurrets.Count > 0) hasTurret   = true;
             }
 
-            float localY = CarriageHeight / 2f + DeployerHeight / 2f;
+            float deployerLocalY = CarriageHeight / 2f + DeployerHeight / 2f;
+            float turretLocalY   = CarriageHeight / 2f + 0.075f; // base height 0.15 / 2
 
             if (!hasDeployer && _carriages.Count > 0)
             {
                 var target = _carriages[_carriages.Count / 2];
                 var d = new DeployerNode();
                 d.Name     = $"Deployer_{target.Name}_forced";
-                d.Position = new Vector3(0f, localY, 0f);
+                d.Position = new Vector3(0f, deployerLocalY, 0f);
                 target.AddChild(d);
                 target.Deployers.Add(d);
             }
@@ -149,7 +153,7 @@ public partial class TrainBuilder : Node3D
                 var target = _carriages[idx];
                 var t = new RoofTurretNode();
                 t.Name     = $"RoofTurret_{target.Name}_forced";
-                t.Position = new Vector3(0f, localY, CarriageLength * 0.25f);
+                t.Position = new Vector3(0f, turretLocalY, target.BodyLength * 0.25f);
                 target.AddChild(t);
                 target.RoofTurrets.Add(t);
             }
@@ -260,20 +264,21 @@ public partial class TrainBuilder : Node3D
         }
     }
 
-    private void AttachRoofSlots(Carriage carriage, int count, RandomNumberGenerator rng)
+    private void AttachRoofSlots(Carriage carriage, int count, RandomNumberGenerator rng, float bodyLen)
     {
-        float spacing = CarriageLength / (count + 1);
-        float localY = CarriageHeight / 2f + DeployerHeight / 2f;
+        float spacing      = bodyLen / (count + 1);
+        float deployerY    = CarriageHeight / 2f + DeployerHeight / 2f;
+        float turretY      = CarriageHeight / 2f + 0.075f; // turret base height 0.15 / 2
 
         for (int i = 0; i < count; i++)
         {
-            float zOffset = -CarriageLength / 2f + spacing * (i + 1);
+            float zOffset = -bodyLen / 2f + spacing * (i + 1);
 
             if (rng.Randf() < 0.5f)
             {
                 var deployer = new DeployerNode();
                 deployer.Name = $"Deployer_{carriage.Name}_{i}";
-                deployer.Position = new Vector3(0f, localY, zOffset);
+                deployer.Position = new Vector3(0f, deployerY, zOffset);
                 carriage.AddChild(deployer);
                 carriage.Deployers.Add(deployer);
             }
@@ -281,19 +286,30 @@ public partial class TrainBuilder : Node3D
             {
                 var turret = new RoofTurretNode();
                 turret.Name = $"RoofTurret_{carriage.Name}_{i}";
-                turret.Position = new Vector3(0f, localY, zOffset);
+                turret.Position = new Vector3(0f, turretY, zOffset);
                 carriage.AddChild(turret);
                 carriage.RoofTurrets.Add(turret);
             }
         }
     }
 
+    // Half-thickness of each clamp type's thin axis (Y before rotation).
+    // Must match the Y component in ClampNode.BuildProceduralMesh.
+    private static float ClampHalfThickness(ClampSetup setup) => setup switch
+    {
+        ClampSetup.Single => 0.04f,
+        ClampSetup.Double => 0.04f,
+        ClampSetup.Triple => 0.035f,
+        _                 => 0.11f,  // Four: corner cube half-size
+    };
+
     private void AttachClampsForSetup(ContainerNode container, bool isRightSide, ClampSetup setup, RandomNumberGenerator rng)
     {
-        float clampX = isRightSide ? ContainerWidth / 2f + 0.15f : -(ContainerWidth / 2f + 0.15f);
+        float halfT  = ClampHalfThickness(setup);
+        float clampX = isRightSide ? ContainerWidth / 2f + halfT : -(ContainerWidth / 2f + halfT);
         float halfH  = ContainerHeight / 2f;
         float halfD  = ContainerDepth  / 2f;
-        const float faceOff = 0.15f;
+        float faceOff = halfT;
 
         float hp;
         Vector3[] positions;

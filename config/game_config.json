@@ -55,6 +55,7 @@
   "environment": {
     "pillar_spacing": 20.0,
     "pillar_x_spread": 0.0,
+    "pillar_y_offset": -5.25,
     "spawn_ahead_distance": 200.0,
     "despawn_behind_distance": 200.0,
     "cloud_pool_size": 25,

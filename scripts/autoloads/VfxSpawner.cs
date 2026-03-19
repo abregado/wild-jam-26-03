@@ -100,7 +100,7 @@ public partial class VfxSpawner : Node
 
         var root = new Node3D { Name = $"Vfx_{id}" };
 
-        var sphere = new SphereMesh { Radius = cfg.Size, Height = cfg.Size * 2f };
+        var sphere = new SphereMesh { Radius = cfg.Size * 0.1f, Height = cfg.Size * 0.2f };
         sphere.Material = new StandardMaterial3D
         {
             AlbedoColor = cfg.Color,
@@ -122,7 +122,7 @@ public partial class VfxSpawner : Node
             InitialVelocityMax = cfg.Speed + cfg.SpeedVar,
             Spread          = 180f,
             Direction       = Vector3.Up,
-            Gravity         = new Vector3(0f, -4f, 0f),
+            Gravity         = new Vector3(0f, -9.8f, 0f),
         };
         root.AddChild(particles);
 

@@ -61,8 +61,9 @@ public partial class GameConfig : Node
     public float TurretRange { get; private set; } = 50f;
 
     // Environment
-    public float PillarSpacing { get; private set; } = 20f;
-    public float PillarXSpread { get; private set; } = 4f;
+    public float PillarSpacing  { get; private set; } = 20f;
+    public float PillarXSpread  { get; private set; } = 4f;
+    public float PillarYOffset  { get; private set; } = -3.5f;
     public float SpawnAheadDistance { get; private set; } = 40f;
     public float DespawnBehindDistance { get; private set; } = 20f;
 
@@ -253,6 +254,7 @@ public partial class GameConfig : Node
             var e = envVar.AsGodotDictionary();
             PillarSpacing          = GetFloat(e, "pillar_spacing",           PillarSpacing);
             PillarXSpread          = GetFloat(e, "pillar_x_spread",          PillarXSpread);
+            PillarYOffset          = GetFloat(e, "pillar_y_offset",          PillarYOffset);
             SpawnAheadDistance     = GetFloat(e, "spawn_ahead_distance",     SpawnAheadDistance);
             DespawnBehindDistance  = GetFloat(e, "despawn_behind_distance",  DespawnBehindDistance);
 
