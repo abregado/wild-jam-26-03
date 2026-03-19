@@ -17,6 +17,7 @@ Use these slash commands for common tasks:
 | `/add-model` | Add a new 3D model to the GLB pipeline (generator, C# load, collision, docs) |
 | `/tune-balance` | Review and adjust difficulty or feel parameters in `game_config.json` |
 | `/new-environment-pool` | Add a new scrolling decoration pool to the environment |
+| `/edit-cutscene` | Modify the intro cutscene or fly-in (waypoints, timing, camera path, text) |
 
 ---
 
@@ -37,6 +38,7 @@ Use these slash commands for common tasks:
 | 11 — Game Session & After-Action | ✅ Done | GameSession.cs, AfterAction.tscn/cs |
 | 12 — Polish & Config Wiring | ✅ Done | All config fields wired |
 | 13 — Enemy Drones | ✅ Done | DeployerNode.cs, DroneNode.cs, DroneBullet.cs, Shield.cs |
+| 14 — Cutscene System | ✅ Done | CutsceneManager.cs, RingIndicator.cs, GameSession.IsFirstRaid |
 
 ---
 
@@ -57,7 +59,7 @@ Use these slash commands for common tasks:
 | Name | Script | Key API |
 |------|--------|---------|
 | `GameConfig` | `scripts/autoloads/GameConfig.cs` | All config values as typed properties; `ApplyUpgrade(name)` |
-| `GameSession` | `scripts/autoloads/GameSession.cs` | `CollectedCargo`, `Reset()`, `OnCargoDetached()` |
+| `GameSession` | `scripts/autoloads/GameSession.cs` | `CollectedCargo`, `Reset()`, `OnCargoDetached()`; `IsFirstRaid` + `MarkRaidStarted()` |
 | `TrainSpeedManager` | `scripts/autoloads/TrainSpeedManager.cs` | `CurrentTrainSpeed`, `TrainZoomSpeed`, `TriggerZoomAway()` |
 
 ---
@@ -131,6 +133,35 @@ Every GLB must contain: `Body` (visual) + `Body-col` (collision — auto-generat
 
 ---
 
+## Cutscene System
+
+Two camera sequences run at the start of `Main.tscn` before handing control to the player.
+
+| | First raid | Subsequent raids |
+|---|---|---|
+| **Trigger** | `GameSession.IsFirstRaid == true` | `IsFirstRaid == false` |
+| **Script method** | `PlayCutscene()` | `PlayFlyIn()` |
+| **Duration** | ~30 s (skippable per waypoint) | ~4 s |
+| **Text/ring** | Yes — 6 waypoints + final text | None |
+
+**First-raid detection**: `GameSession.IsFirstRaid` starts `true` and is never touched by `Reset()` (survives scene reloads). `CutsceneManager._Ready()` calls `MarkRaidStarted()` before firing `PlayCutscene()`.
+
+**Waypoints** (`PlayCutscene`): non-Scrap container → Scrap container → top clamp → random deployer → random turret → caboose. Sorted front-to-back by Z. Text from `config/game_config.json` → `"cutscene"` section.
+
+**Smooth camera rotation**: `_desiredLook` is set before each `MoveTo()` so rotation blends during travel. `_Process` lerps `_smoothLook → _desiredLook` at `LookLerpSpeed = 2.8f`.
+
+**Analytical framing** (`ComputeFraming`): places the focused object at (0.25 W, 0.5 H) — centre of the left screen half.
+
+**Ring indicator** (`RingIndicator.cs`): screen-space bouncing arc, radius computed from `WorldRadius` (world-space) projected to pixels each frame.
+
+**Camera blend at handover** (both sequences): cutscene camera tweens to the player camera's exact world position + orientation, then `MakeCurrent()` switches — no visible pop.
+
+**During cutscene**: PlayerCar hidden + input disabled (`_captureDesired = false`), HUD hidden, `ObstacleSystem` paused (`ProcessModeEnum.Disabled`), `LevelManager._cutsceneActive = true`.
+
+→ Use `/edit-cutscene` to modify waypoints, timing, text, or camera paths.
+
+---
+
 ## Known Deviations
 
 - `TrainBuilder.cs` attaches to a **child Node3D "Train"** in Main.tscn (not Main directly).
@@ -156,3 +187,4 @@ Every GLB must contain: `Body` (visual) + `Body-col` (collision — auto-generat
 | [docs/replacing-models.md](docs/replacing-models.md) | Replacing a GLB model |
 | [docs/collision.md](docs/collision.md) | Body-col convention, collision import settings |
 | [docs/wiring-scenes.md](docs/wiring-scenes.md) | One-time scene mesh wiring guide |
+| [docs/systems/cutscene.md](docs/systems/cutscene.md) | Cutscene system: sequences, waypoints, camera blend, ring indicator |
