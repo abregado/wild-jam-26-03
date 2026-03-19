@@ -125,6 +125,10 @@ public partial class GameConfig : Node
     public float ObstacleCubeSpacing { get; private set; } = 6f;
     public float CliffCubeWidth { get; private set; } = 9f;
 
+    // Day / Night
+    public bool  DayNightEnabled       { get; private set; } = true;
+    public float DayNightPhaseDuration { get; private set; } = 240f;
+
     // Cutscene texts
     public string CutsceneTextContainer { get; private set; } = "Containers hold loot.\nUse a Beacon to see what is inside.";
     public string CutsceneTextScrap     { get; private set; } = "Some containers are filled with useless Scrap.\nIgnore them.";
@@ -312,6 +316,13 @@ public partial class GameConfig : Node
             ObstacleCubePoolSize       = GetInt  (o, "cube_pool_size",       ObstacleCubePoolSize);
             ObstacleCubeSpacing        = GetFloat(o, "cube_spacing",         ObstacleCubeSpacing);
             CliffCubeWidth             = GetFloat(o, "cliff_cube_width",     CliffCubeWidth);
+        }
+
+        if (data.TryGetValue("day_night", out var dnVar))
+        {
+            var dn = dnVar.AsGodotDictionary();
+            DayNightEnabled       = GetBool (dn, "enabled",        DayNightEnabled);
+            DayNightPhaseDuration = GetFloat(dn, "phase_duration", DayNightPhaseDuration);
         }
 
         if (data.TryGetValue("cutscene", out var cutsceneVar))

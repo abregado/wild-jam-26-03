@@ -251,6 +251,7 @@ public partial class Turret : Node3D
 
         bullet.Initialize(_config.TurretDamage, _config.BlastRadius, _config.BulletSpeed);
 
+        VfxSpawner.Spawn("player_muzzle", tip.GlobalPosition);
         TriggerMuzzleFlash(tip);
         TriggerBarrelRetract();
     }

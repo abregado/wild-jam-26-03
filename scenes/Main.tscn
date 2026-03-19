@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="6"]
 [ext_resource type="Script" path="res://scripts/environment/ObstaclePool.cs" id="7"]
 [ext_resource type="Script" path="res://scripts/CutsceneManager.cs" id="8"]
+[ext_resource type="Script" path="res://scripts/environment/DayNightCycle.cs" id="9"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.15, 0.35, 0.7, 1)
@@ -72,3 +73,6 @@ Zone = 3
 
 [node name="CutsceneManager" type="Node" parent="."]
 script = ExtResource("8")
+
+[node name="DayNightCycle" type="Node" parent="."]
+script = ExtResource("9")

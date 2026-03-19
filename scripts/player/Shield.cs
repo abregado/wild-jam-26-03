@@ -84,6 +84,7 @@ public partial class Shield : Node3D
         {
             bullet.Block();
             FlashShield();
+            VfxSpawner.Spawn("shield_hit", bullet.GlobalPosition);
         }
     }
 

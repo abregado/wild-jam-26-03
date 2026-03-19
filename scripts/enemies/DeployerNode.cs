@@ -40,9 +40,9 @@ public partial class DeployerNode : Node3D
         else
         {
             var box = new BoxMesh { Size = new Vector3(1.2f, 0.4f, 0.8f) };
-            box.Material = new StandardMaterial3D { AlbedoColor = DeployerColor };
             meshInst.Mesh = box;
         }
+        meshInst.MaterialOverride = new StandardMaterial3D { AlbedoColor = DeployerColor };
         AddChild(meshInst);
     }
 

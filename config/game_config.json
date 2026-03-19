@@ -109,6 +109,10 @@
     "cube_spacing": 6.0,
     "cliff_cube_width": 9.0
   },
+  "day_night": {
+    "enabled": true,
+    "phase_duration": 240.0
+  },
   "cutscene": {
     "text_container": "Containers hold loot.\nUse a Beacon to see what is inside.",
     "text_scrap":     "Some containers are filled with useless Scrap.\nIgnore them.",

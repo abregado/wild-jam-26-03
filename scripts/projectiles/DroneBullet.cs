@@ -85,6 +85,7 @@ public partial class DroneBullet : Node3D
 
                 var playerCar = GetTree().Root.FindChild("PlayerCar", true, false) as PlayerCar;
                 playerCar?.FlashShieldHit();
+                VfxSpawner.Spawn("car_hit", GlobalPosition);
             }
             QueueFree();
             return;

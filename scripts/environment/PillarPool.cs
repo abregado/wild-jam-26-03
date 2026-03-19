@@ -10,9 +10,9 @@ using Godot;
 /// </summary>
 public partial class PillarPool : Node3D
 {
-    private const float PillarHeight = 9f;
+    private const float PillarHeight = 6.0f;  // shorter so top sits just below the track
     private const float TrackY = 7f;
-    private const float PillarY = TrackY - PillarHeight / 2f;
+    private const float PillarY = TrackY - PillarHeight / 2f - 0.5f; // 0.5 extra clearance below track
 
     public const float PillarX = 0f;
 
@@ -61,6 +61,8 @@ public partial class PillarPool : Node3D
         _initialized = true;
     }
 
+    private static readonly Color PillarColor = new(0.55f, 0.55f, 0.55f);
+
     private static Node3D CreatePillarFromGlb(PackedScene scene)
     {
         var pillar = scene.Instantiate<Node3D>();
@@ -71,6 +73,8 @@ public partial class PillarPool : Node3D
                 body.CollisionLayer = 1;
                 body.CollisionMask  = 0;
             }
+            if (child is MeshInstance3D mesh)
+                mesh.MaterialOverride = new StandardMaterial3D { AlbedoColor = PillarColor };
         }
         return pillar;
     }

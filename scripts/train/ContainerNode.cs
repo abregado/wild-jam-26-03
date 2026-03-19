@@ -153,6 +153,8 @@ public partial class ContainerNode : Node3D
         else
             EmitSignal(SignalName.ContainerDestroyed);
 
+        VfxSpawner.Spawn("container_detach", GlobalPosition);
+
         // Fall off the train
         var tween = CreateTween();
         tween.TweenProperty(this, "position:y", GlobalPosition.Y - 15f, 1.5f)

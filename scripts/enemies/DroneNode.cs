@@ -4,9 +4,9 @@ using Godot;
 /// Enemy drone deployed from a DeployerNode on top of train carriages.
 ///
 /// State machine:
-///   Deploying          → fly upward 3 units from deployer, then MovingToPosition
+///   Deploying          → scale 0→1 tween, fly upward 3 units from deployer, then MovingToPosition
 ///   MovingToPosition   → fly to combat position at DroneMoveSpeed, then InPosition
-///   InPosition         → wait for fire cooldown; if player too far → Repositioning;
+///   InPosition         → wait for fire cooldown; face player; if player too far → Repositioning;
 ///                        otherwise fire, then maybe Repositioning
 ///   Repositioning      → fly to new combat position at DroneCombatSpeed, then InPosition
 ///   FollowingSide      → fly over train top to follow player side-switch, then MovingToPosition
@@ -44,11 +44,16 @@ public partial class DroneNode : Node3D
     private float _dyingTimer;
     private float _dyingVelocity;
 
+    // Pre-fire effect timer: spawn prefire VFX this many seconds before next shot
+    private const float PreFireWindow = 0.35f;
+    private bool _preFired;
+
     // Return-to-deployer: phase 0 = fly to hover point, phase 1 = descend
     private int _returnPhase;
     private Vector3 _returnHoverPoint;
 
     private Area3D _area = null!;
+    private bool _spawnTweenDone;
 
     private const float OverTrainHeight = 14f;
     private const float ArrivalThreshold = 0.5f;
@@ -56,6 +61,8 @@ public partial class DroneNode : Node3D
     private const float DyingDuration = 2.0f;
     private const float ReturnHoverHeight = 4f;
     private const float LandingSpeed = 3f;
+
+    private static readonly Color DroneColor = new(0.2f, 0.2f, 0.25f);
 
     public void Initialize(DeployerNode deployer, PlayerCar player, GameConfig config, RandomNumberGenerator rng)
     {
@@ -81,12 +88,11 @@ public partial class DroneNode : Node3D
         else
         {
             var box = new BoxMesh { Size = new Vector3(0.8f, 0.25f, 0.8f) };
-            box.Material = new StandardMaterial3D { AlbedoColor = new Color(0.2f, 0.2f, 0.25f) };
             meshInst.Mesh = box;
         }
+        meshInst.MaterialOverride = new StandardMaterial3D { AlbedoColor = DroneColor };
         AddChild(meshInst);
 
-        // Area3D on layer 32 (drones, bit 6). Player bullets use mask 39 which includes 32.
         _area = new Area3D
         {
             CollisionLayer = 32u,
@@ -97,6 +103,18 @@ public partial class DroneNode : Node3D
         };
         _area.AddChild(new CollisionShape3D { Shape = new SphereShape3D { Radius = 0.5f } });
         AddChild(_area);
+
+        // Spawn punch: scale from 0 to 1 with elastic ease
+        Scale = Vector3.Zero;
+        var tween = CreateTween();
+        tween.TweenProperty(this, "scale", Vector3.One, 0.45f)
+             .SetTrans(Tween.TransitionType.Elastic)
+             .SetEase(Tween.EaseType.Out);
+        tween.TweenCallback(Callable.From(() =>
+        {
+            _spawnTweenDone = true;
+            VfxSpawner.Spawn("drone_deployed", GlobalPosition);
+        }));
     }
 
     public void TakeDamage(float amount)
@@ -110,6 +128,7 @@ public partial class DroneNode : Node3D
     public override void _Process(double delta)
     {
         if (_config == null) return;
+        if (!_spawnTweenDone) return; // wait for spawn animation before activating
         if (_playerCar == null || !_playerCar.IsInsideTree()) { QueueFree(); return; }
 
         float dt = (float)delta;
@@ -177,6 +196,7 @@ public partial class DroneNode : Node3D
         {
             GlobalPosition = _combatTarget;
             _fireCooldown = 1f / _config.DroneFireRate;
+            _preFired = false;
             _state = DroneState.InPosition;
             return;
         }
@@ -186,19 +206,33 @@ public partial class DroneNode : Node3D
 
     private void ProcessInPosition(float dt)
     {
+        // Face player while waiting / shooting
+        var toPlayer = _playerCar.GlobalPosition - GlobalPosition;
+        LookToward(toPlayer);
+
         // If player is out of chase range, reposition toward them instead of shooting
         float distToPlayer = GlobalPosition.DistanceTo(_playerCar.GlobalPosition);
         if (distToPlayer > _config.DroneChaseDistance)
         {
             _combatTarget = ComputeCombatPosition();
             _state = DroneState.Repositioning;
+            _preFired = false;
             return;
         }
 
         _fireCooldown -= dt;
+
+        // Pre-fire VFX
+        if (!_preFired && _fireCooldown <= PreFireWindow)
+        {
+            _preFired = true;
+            VfxSpawner.Spawn("drone_prefire", GlobalPosition);
+        }
+
         if (_fireCooldown <= 0f)
         {
             Fire();
+            _preFired = false;
             if (_rng.Randf() < _config.DroneRepositionChance)
             {
                 _combatTarget = ComputeCombatPosition();
@@ -221,13 +255,13 @@ public partial class DroneNode : Node3D
             return;
         }
         GlobalPosition += dir.Normalized() * _config.DroneMoveSpeed * dt;
+        LookToward(dir);
     }
 
     private void ProcessReturning(float dt)
     {
         if (_returnPhase == 0)
         {
-            // Fly to hover point above deployer
             var dir = _returnHoverPoint - GlobalPosition;
             if (dir.Length() < ArrivalThreshold)
             {
@@ -239,18 +273,15 @@ public partial class DroneNode : Node3D
         }
         else
         {
-            // Descend slowly onto deployer
             var target = _deployer.GlobalPosition;
             var dir = target - GlobalPosition;
             if (dir.Length() < 0.2f)
             {
-                // Landed — scale down and free
                 var tween = CreateTween();
                 tween.TweenProperty(this, "scale", Vector3.Zero, 0.3f)
                      .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
                 tween.TweenCallback(Callable.From(QueueFree));
                 _deployer.OnDroneReturned();
-                // Prevent re-entry into this branch
                 _state = DroneState.Dying;
                 return;
             }
@@ -277,6 +308,7 @@ public partial class DroneNode : Node3D
         _dyingVelocity = 0f;
         _deployer.OnDroneDestroyed();
         _area.SetDeferred(Area3D.PropertyName.Monitorable, false);
+        VfxSpawner.Spawn("drone_destroyed", GlobalPosition);
     }
 
     private void StartFollowingSide()
@@ -314,6 +346,8 @@ public partial class DroneNode : Node3D
             float missY = _rng.RandfRange(0.6f, 1.2f) * (_rng.Randf() > 0.5f ? 1f : -1f);
             targetPos = _playerCar.GlobalPosition + new Vector3(missX, missY, 0f);
         }
+
+        VfxSpawner.Spawn("drone_muzzle", GlobalPosition);
 
         var bullet = new DroneBullet();
         GetTree().Root.AddChild(bullet);

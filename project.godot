@@ -21,6 +21,7 @@ GameConfig="*res://scripts/autoloads/GameConfig.cs"
 GameSession="*res://scripts/autoloads/GameSession.cs"
 TrainSpeedManager="*res://scripts/autoloads/TrainSpeedManager.cs"
 ObstacleManager="*res://scripts/environment/ObstacleManager.cs"
+VfxSpawner="*res://scripts/autoloads/VfxSpawner.cs"
 
 [configuration]
 
@@ -29,6 +30,10 @@ config_version=5
 [dotnet]
 
 project/assembly_name="WildJam2603"
+
+[filesystem]
+
+import/blender/enabled=false
 
 [input]
 

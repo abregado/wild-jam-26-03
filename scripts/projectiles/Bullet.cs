@@ -99,24 +99,35 @@ public partial class Bullet : Node3D
         if (result.Count > 0)
         {
             var hitPos = result["position"].AsVector3();
-            // Only Area3D hits deal damage; StaticBody3D hits (train cars, rail, pillars) just stop the bullet.
-            // Use C# 'is' cast — Variant.As<T>() throws when the type doesn't match (e.g. StaticBody3D→Area3D).
+            bool hitDamageable = false;
+
             if (result["collider"].AsGodotObject() is Area3D area)
             {
                 var parent = area.GetParent();
                 if (parent is ClampNode clamp)
+                {
                     clamp.TakeDamage(_damage);
+                    hitDamageable = true;
+                }
                 else if (parent is ContainerNode container)
                 {
                     container.TakeDamage(_damage);
                     container.TakeSplashDamage(hitPos, _blastRadius, _damage);
+                    hitDamageable = true;
                 }
                 else if (parent is DroneNode drone)
+                {
                     drone.TakeDamage(_damage);
+                    hitDamageable = true;
+                }
                 else if (parent is RoofTurretNode roofTurret)
+                {
                     roofTurret.TakeDamage(_damage);
+                    hitDamageable = true;
+                }
             }
 
+            VfxSpawner.Spawn(hitDamageable ? "hit_damageable" : "hit_nondamageable", hitPos);
             GlobalPosition = hitPos;
             HitAndDestroy();
             return;

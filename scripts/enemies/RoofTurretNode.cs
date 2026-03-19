@@ -3,23 +3,24 @@ using Godot;
 /// <summary>
 /// Roof-mounted enemy turret. Sits on top of train carriages.
 ///
-/// States:
-///   Inactive  — dormant. Activate() is called when nearby container/clamp takes damage
-///               (same wiring as DeployerNode). When cooldown is zero and player is in range,
-///               transitions to Active.
-///   Active    — tracks player horizontally and fires in bursts. After each burst, checks range;
-///               if player is too far away, returns to Inactive. Any player bullet hit sends it
-///               to Repairing instead.
-///   Repairing — longer cooldown version of Inactive; visual changes to yellow.
+/// Visual structure (built procedurally; artist can provide roof_turret.glb with
+/// child nodes named "Base", "Dome", "Barrel" to override each part):
+///   RoofTurretNode  (yaws to track player in all states)
+///   ├── BaseMesh    (flat base plate — always visible)
+///   ├── DomePivot   (rotates for activation flip animation)
+///   │   └── DomeMesh
+///   └── BarrelMount (pitches to aim at player when Active)
+///       └── BarrelMesh (scales 0→1 on activation)
 ///
-/// Fire rules (checked each shot):
-///   - Cannot fire while player.IsFlippingUnder (flip-under arc).
-///   - Can fire while player.IsFlippingOver (flip-over arc) or standing on either side.
-///   - Can be Active during a Roof obstacle section (unlike Deployers which cannot spawn).
+/// States:
+///   Inactive  — dormant. DomePivot.X = 180° (dome upside-down), Barrel scale = 0.
+///   Active    — tracks player and fires in bursts. Dome unfolds, barrel extends.
+///   Repairing — hit by player bullet. Dome+Barrel hidden, repair VFX plays.
+///               After repair time, returns to Inactive (dome re-appears flipped,
+///               barrel re-appears at scale 0, ready for next activation).
 ///
 /// Collision:
-///   Area3D on layer 32 (enemies). Player bullet raycasts (mask 39 includes 32) detect this.
-///   Monitorable only when Active — no damage possible while Inactive or Repairing.
+///   Area3D on layer 32 (enemies). Monitorable only when Active.
 /// </summary>
 public partial class RoofTurretNode : Node3D
 {
@@ -39,14 +40,30 @@ public partial class RoofTurretNode : Node3D
     private float _burstPauseTimer = 0f;
     private bool _inBurstPause = false;
 
+    // Pre-fire effect
+    private const float PreFireWindow = 0.35f;
+    private bool _preFired;
+
     private Area3D _area = null!;
-    private StandardMaterial3D _mat = null!;
 
-    private static readonly Color ColorInactive  = new(0.3f,  0.3f,  0.35f);
-    private static readonly Color ColorActive    = new(0.8f,  0.15f, 0.05f);
-    private static readonly Color ColorRepairing = new(0.65f, 0.5f,  0.05f);
+    // Visual nodes
+    private Node3D _domePivot = null!;
+    private MeshInstance3D _domeMesh = null!;
+    private Node3D _barrelMount = null!;
+    private MeshInstance3D _barrelMesh = null!;
 
-    private const float TurretSize = 0.9f;
+    private static readonly Color ColorBase      = new(0.25f, 0.25f, 0.30f);
+    private static readonly Color ColorDomeInact = new(0.30f, 0.30f, 0.35f);
+    private static readonly Color ColorDomeAct   = new(0.75f, 0.10f, 0.05f);
+    private static readonly Color ColorDomeRep   = new(0.60f, 0.45f, 0.05f);
+    private static readonly Color ColorBarrel    = new(0.20f, 0.20f, 0.25f);
+
+    private StandardMaterial3D _domeMat = null!;
+
+    private const float BaseSize   = 0.9f;
+    private const float DomeRadius = 0.35f;
+    private const float BarrelLen  = 0.6f;
+    private const float BarrelRad  = 0.08f;
 
     public override void _Ready()
     {
@@ -54,67 +71,181 @@ public partial class RoofTurretNode : Node3D
         _rng = new RandomNumberGenerator();
         _rng.Randomize();
 
-        BuildVisual();
+        BuildVisuals();
         BuildCollision();
+
+        // Start in Inactive visual state
+        SetInactiveVisuals(animate: false);
     }
 
-    private void BuildVisual()
+    // ─── Visual construction ─────────────────────────────────────────────────
+
+    private void BuildVisuals()
     {
-        _mat = new StandardMaterial3D { AlbedoColor = ColorInactive };
-        var meshInst = new MeshInstance3D { Name = "MeshSlot" };
-        var glbMesh = TryLoadGlbMesh("res://assets/models/enemies/roof_turret.glb");
-        if (glbMesh != null)
+        // Try to load multi-part GLB first
+        var glbScene = GD.Load<PackedScene>("res://assets/models/enemies/roof_turret.glb");
+        if (glbScene != null)
         {
-            meshInst.Mesh = glbMesh;
+            var glbRoot = glbScene.Instantiate<Node3D>();
+            var glbBase   = glbRoot.FindChild("Base")   as MeshInstance3D;
+            var glbDome   = glbRoot.FindChild("Dome")   as MeshInstance3D;
+            var glbBarrel = glbRoot.FindChild("Barrel") as MeshInstance3D;
+
+            if (glbBase != null && glbDome != null && glbBarrel != null)
+            {
+                // Re-parent each part into our structure
+                BuildFromGlb(glbBase, glbDome, glbBarrel);
+                glbRoot.QueueFree();
+                return;
+            }
+            glbRoot.QueueFree();
         }
-        else
+
+        BuildProcedural();
+    }
+
+    private void BuildFromGlb(MeshInstance3D glbBase, MeshInstance3D glbDome, MeshInstance3D glbBarrel)
+    {
+        var baseMesh = new MeshInstance3D { Name = "BaseMesh", Mesh = glbBase.Mesh };
+        baseMesh.MaterialOverride = new StandardMaterial3D { AlbedoColor = ColorBase };
+        AddChild(baseMesh);
+
+        _domePivot = new Node3D { Name = "DomePivot" };
+        AddChild(_domePivot);
+
+        _domeMat = new StandardMaterial3D { AlbedoColor = ColorDomeInact };
+        _domeMesh = new MeshInstance3D { Name = "DomeMesh", Mesh = glbDome.Mesh };
+        _domeMesh.MaterialOverride = _domeMat;
+        _domePivot.AddChild(_domeMesh);
+
+        _barrelMount = new Node3D { Name = "BarrelMount" };
+        _barrelMount.Position = new Vector3(0f, DomeRadius, 0f);
+        _domePivot.AddChild(_barrelMount);
+
+        _barrelMesh = new MeshInstance3D { Name = "BarrelMesh", Mesh = glbBarrel.Mesh };
+        _barrelMesh.MaterialOverride = new StandardMaterial3D { AlbedoColor = ColorBarrel };
+        _barrelMount.AddChild(_barrelMesh);
+    }
+
+    private void BuildProcedural()
+    {
+        // Base plate
+        var baseInst = new MeshInstance3D { Name = "BaseMesh" };
+        var baseBox = new BoxMesh { Size = new Vector3(BaseSize, 0.15f, BaseSize) };
+        baseInst.Mesh = baseBox;
+        baseInst.MaterialOverride = new StandardMaterial3D { AlbedoColor = ColorBase };
+        AddChild(baseInst);
+
+        // Dome pivot (flipped 180° when inactive)
+        _domePivot = new Node3D { Name = "DomePivot" };
+        _domePivot.Position = new Vector3(0f, 0.07f, 0f);
+        AddChild(_domePivot);
+
+        _domeMat = new StandardMaterial3D { AlbedoColor = ColorDomeInact };
+        _domeMesh = new MeshInstance3D { Name = "DomeMesh" };
+        _domeMesh.Mesh = new SphereMesh { Radius = DomeRadius, Height = DomeRadius * 2f, RadialSegments = 8, Rings = 4 };
+        _domeMesh.MaterialOverride = _domeMat;
+        _domePivot.AddChild(_domeMesh);
+
+        // Barrel mount (offset upward from dome centre so barrel extends from the dome)
+        _barrelMount = new Node3D { Name = "BarrelMount" };
+        _barrelMount.Position = new Vector3(0f, DomeRadius * 0.5f, 0f);
+        _domePivot.AddChild(_barrelMount);
+
+        _barrelMesh = new MeshInstance3D { Name = "BarrelMesh" };
+        var barrelCyl = new CylinderMesh
         {
-            var box = new BoxMesh { Size = new Vector3(TurretSize, TurretSize, TurretSize) };
-            box.Material = _mat;
-            meshInst.Mesh = box;
-        }
-        AddChild(meshInst);
+            Height = BarrelLen,
+            TopRadius = BarrelRad,
+            BottomRadius = BarrelRad,
+        };
+        _barrelMesh.Mesh = barrelCyl;
+        _barrelMesh.MaterialOverride = new StandardMaterial3D { AlbedoColor = ColorBarrel };
+        // Position so barrel extends forward (-Z) from the dome
+        _barrelMesh.Position = new Vector3(0f, 0f, -BarrelLen * 0.5f);
+        _barrelMesh.RotationDegrees = new Vector3(90f, 0f, 0f); // cylinder along Z
+        _barrelMount.AddChild(_barrelMesh);
     }
 
     private void BuildCollision()
     {
         _area = new Area3D
         {
-            CollisionLayer = 32u,   // enemies layer — player bullets (mask 39) include this
+            CollisionLayer = 32u,
             CollisionMask  = 0u,
-            Monitorable    = false, // enabled only when Active
+            Monitorable    = false,
             Monitoring     = false,
             Name           = "Area3D",
         };
         _area.AddChild(new CollisionShape3D
         {
-            Shape = new BoxShape3D { Size = new Vector3(TurretSize, TurretSize, TurretSize) }
+            Shape = new BoxShape3D { Size = new Vector3(BaseSize, BaseSize, BaseSize) }
         });
         AddChild(_area);
     }
 
+    // ─── Visual state helpers ─────────────────────────────────────────────────
+
+    private void SetInactiveVisuals(bool animate)
+    {
+        _domeMat.AlbedoColor = ColorDomeInact;
+        _domePivot.Visible = true;
+        _barrelMesh.Visible = true;
+
+        if (animate)
+        {
+            var tw = CreateTween();
+            tw.TweenProperty(_domePivot, "rotation_degrees:x", 180f, 0.4f)
+              .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.InOut);
+            tw.Parallel()
+              .TweenProperty(_barrelMesh, "scale", Vector3.Zero, 0.3f)
+              .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+        }
+        else
+        {
+            _domePivot.RotationDegrees = new Vector3(180f, 0f, 0f);
+            _barrelMesh.Scale = Vector3.Zero;
+        }
+    }
+
+    private void SetActiveVisuals()
+    {
+        _domeMat.AlbedoColor = ColorDomeAct;
+        _domePivot.Visible = true;
+        _barrelMesh.Visible = true;
+
+        var tw = CreateTween();
+        tw.TweenProperty(_domePivot, "rotation_degrees:x", 0f, 0.5f)
+          .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tw.Parallel()
+          .TweenProperty(_barrelMesh, "scale", Vector3.One, 0.4f)
+          .SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+    }
+
+    private void SetRepairingVisuals()
+    {
+        // Hide moving parts, play explosion VFX
+        _domePivot.Visible = false;
+        VfxSpawner.Spawn("turret_repair", GlobalPosition);
+    }
+
+    // ─── Public API ──────────────────────────────────────────────────────────
+
     public void SetPlayerCar(PlayerCar? player) => _playerCar = player;
 
-    /// <summary>
-    /// Connected to ContainerNode.DamageTaken and ClampNode.DamageTaken by TrainBuilder.
-    /// Arms the turret; actual activation (→ Active) happens once the cooldown has elapsed
-    /// and the player is within RoofTurretMaxRange.
-    /// </summary>
     public void Activate()
     {
         if (_state != TurretState.Inactive) return;
         _activationPending = true;
     }
 
-    /// <summary>
-    /// Called by Bullet when a player bullet hits this turret's Area3D.
-    /// Only has effect in the Active state.
-    /// </summary>
     public void TakeDamage(float _amount)
     {
         if (_state != TurretState.Active) return;
         EnterRepairing();
     }
+
+    // ─── Process ─────────────────────────────────────────────────────────────
 
     public override void _Process(double delta)
     {
@@ -129,8 +260,6 @@ public partial class RoofTurretNode : Node3D
         }
     }
 
-    // ─── State processors ────────────────────────────────────────────────────
-
     private void ProcessInactive(float dt)
     {
         _cooldown -= dt;
@@ -139,7 +268,7 @@ public partial class RoofTurretNode : Node3D
         float dist = GlobalPosition.DistanceTo(_playerCar!.GlobalPosition);
         if (dist > _config.RoofTurretMaxRange)
         {
-            _activationPending = false; // out of range — wait for the next damage signal
+            _activationPending = false;
             return;
         }
 
@@ -150,7 +279,6 @@ public partial class RoofTurretNode : Node3D
     {
         if (!_playerCar!.IsInsideTree()) { EnterInactive(); return; }
 
-        // Track player with horizontal-only yaw rotation
         TrackPlayer();
 
         if (_inBurstPause)
@@ -161,24 +289,32 @@ public partial class RoofTurretNode : Node3D
                 _inBurstPause = false;
                 _shotsRemainingInBurst = _config.RoofTurretBurstCount;
                 _fireCooldown = 1f / _config.RoofTurretFireRate;
+                _preFired = false;
             }
             return;
         }
 
         _fireCooldown -= dt;
+
+        // Pre-fire VFX
+        if (!_preFired && _fireCooldown <= PreFireWindow)
+        {
+            _preFired = true;
+            VfxSpawner.Spawn("turret_prefire", GlobalPosition);
+        }
+
         if (_fireCooldown > 0f) return;
 
-        // Cannot fire during a flip-under arc
         if (_playerCar.IsFlippingUnder)
         {
-            _fireCooldown = 0.2f; // short retry delay
+            _fireCooldown = 0.2f;
             return;
         }
 
         Fire();
+        _preFired = false;
         _shotsRemainingInBurst--;
 
-        // After each shot: deactivate if player has moved out of range
         if (GlobalPosition.DistanceTo(_playerCar.GlobalPosition) > _config.RoofTurretMaxRange)
         {
             EnterInactive();
@@ -212,8 +348,9 @@ public partial class RoofTurretNode : Node3D
         _shotsRemainingInBurst = _config.RoofTurretBurstCount;
         _fireCooldown = 1f / _config.RoofTurretFireRate;
         _inBurstPause = false;
+        _preFired = false;
         _area.SetDeferred(Area3D.PropertyName.Monitorable, true);
-        _mat.AlbedoColor = ColorActive;
+        SetActiveVisuals();
         GD.Print($"[RoofTurret] {Name} activated.");
     }
 
@@ -223,7 +360,7 @@ public partial class RoofTurretNode : Node3D
         _activationPending = false;
         _cooldown = _config.RoofTurretReactivationTime;
         _area.SetDeferred(Area3D.PropertyName.Monitorable, false);
-        _mat.AlbedoColor = ColorInactive;
+        SetInactiveVisuals(animate: true);
     }
 
     private void EnterRepairing()
@@ -231,7 +368,8 @@ public partial class RoofTurretNode : Node3D
         _state = TurretState.Repairing;
         _cooldown = _config.RoofTurretRepairTime;
         _area.SetDeferred(Area3D.PropertyName.Monitorable, false);
-        _mat.AlbedoColor = ColorRepairing;
+        _domeMat.AlbedoColor = ColorDomeRep;
+        SetRepairingVisuals();
         GD.Print($"[RoofTurret] {Name} damaged — repairing for {_cooldown:F1}s.");
     }
 
@@ -239,10 +377,18 @@ public partial class RoofTurretNode : Node3D
 
     private void TrackPlayer()
     {
+        // Yaw whole node to face player
         var dir = _playerCar!.GlobalPosition - GlobalPosition;
         var flat = new Vector3(dir.X, 0f, dir.Z);
         if (flat.LengthSquared() > 0.01f)
             RotationDegrees = new Vector3(0f, Mathf.RadToDeg(Mathf.Atan2(-flat.X, -flat.Z)), 0f);
+
+        // Pitch barrel mount to aim vertically
+        if (_barrelMount != null && dir.LengthSquared() > 0.01f)
+        {
+            float pitchRad = Mathf.Atan2(-dir.Y, flat.Length());
+            _barrelMount.RotationDegrees = new Vector3(Mathf.RadToDeg(pitchRad), 0f, 0f);
+        }
     }
 
     private void Fire()
@@ -264,20 +410,15 @@ public partial class RoofTurretNode : Node3D
             targetPos = _playerCar!.GlobalPosition + new Vector3(missX, missY, 0f);
         }
 
+        // Muzzle position: tip of barrel in world space
+        var muzzlePos = _barrelMount != null
+            ? _barrelMount.GlobalPosition + GlobalTransform.Basis.Z * (-BarrelLen)
+            : GlobalPosition;
+        VfxSpawner.Spawn("turret_muzzle", muzzlePos);
+
         var bullet = new DroneBullet();
         GetTree().Root.AddChild(bullet);
-        bullet.GlobalPosition = GlobalPosition;
+        bullet.GlobalPosition = muzzlePos;
         bullet.Initialize(targetPos, isHit, _config.RoofTurretBulletSpeed);
-    }
-
-    private static Mesh? TryLoadGlbMesh(string path)
-    {
-        var scene = GD.Load<PackedScene>(path);
-        if (scene == null) return null;
-        var root = scene.Instantiate<Node3D>();
-        var body = root.FindChild("Body") as MeshInstance3D;
-        var mesh = body?.Mesh;
-        root.QueueFree();
-        return mesh;
     }
 }
