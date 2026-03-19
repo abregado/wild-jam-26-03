@@ -25,9 +25,10 @@ public partial class MainMenu : Control
     private Button[]  _slotButtons   = new Button[3];
     private Button[]  _deleteButtons = new Button[3];
 
-    private Control  _optionsOverlay  = null!;
-    private OptionsMenu _optionsMenu  = null!;
-    private Control  _confirmPanel    = null!;
+    private Control     _optionsOverlay   = null!;
+    private CenterContainer _optionsCenterWrap = null!;
+    private OptionsMenu _optionsMenu     = null!;
+    private Control     _confirmPanel    = null!;
     private int      _pendingDeleteSlot = -1;
 
     public override void _Ready()
@@ -66,15 +67,20 @@ public partial class MainMenu : Control
         overlay.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(overlay);
 
-        // Centred container
+        // CenterContainer fills the screen and centers its single child automatically.
+        // This is the same pattern AfterAction uses (anchors_preset=8 / center anchor).
+        var centerWrap = new CenterContainer();
+        centerWrap.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(centerWrap);
+
+        // Actual content column, fixed width so it never spans the whole screen.
         var centre = new VBoxContainer
         {
             Alignment = BoxContainer.AlignmentMode.Center,
+            CustomMinimumSize = new Vector2(700f, 0f),
         };
-        centre.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-        centre.CustomMinimumSize = new Vector2(720f, 0f);
-        centre.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        AddChild(centre);
+        centre.AddThemeConstantOverride("separation", 12);
+        centerWrap.AddChild(centre);
 
         // Title
         var title = new Label
@@ -153,14 +159,18 @@ public partial class MainMenu : Control
         _optionsOverlay.Visible = false;
         AddChild(_optionsOverlay);
 
+        // CenterContainer keeps the options panel centred regardless of window size.
+        var optCenterWrap = new CenterContainer();
+        optCenterWrap.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        optCenterWrap.Visible = false;
+        AddChild(optCenterWrap);
+
         _optionsMenu = new OptionsMenu();
-        _optionsMenu.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
         _optionsMenu.CustomMinimumSize = new Vector2(660f, 520f);
-        _optionsMenu.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        _optionsMenu.SizeFlagsVertical   = SizeFlags.ShrinkCenter;
         _optionsMenu.Closed += OnOptionsClosed;
-        _optionsMenu.Visible = false;
-        AddChild(_optionsMenu);
+        optCenterWrap.AddChild(_optionsMenu);
+
+        _optionsCenterWrap = optCenterWrap;
 
         // Confirm-delete panel (hidden)
         BuildConfirmPanel();
@@ -168,17 +178,19 @@ public partial class MainMenu : Control
 
     private void BuildConfirmPanel()
     {
-        _confirmPanel = new PanelContainer();
-        _confirmPanel.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-        (_confirmPanel as PanelContainer)!.CustomMinimumSize = new Vector2(360f, 160f);
-        _confirmPanel.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        _confirmPanel.SizeFlagsVertical   = SizeFlags.ShrinkCenter;
-        _confirmPanel.Visible = false;
-        AddChild(_confirmPanel);
+        // CenterContainer so the dialog is always screen-centred.
+        var confirmWrap = new CenterContainer();
+        confirmWrap.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        confirmWrap.Visible = false;
+        AddChild(confirmWrap);
+        _confirmPanel = confirmWrap;
+
+        var panel = new PanelContainer { CustomMinimumSize = new Vector2(360f, 0f) };
+        confirmWrap.AddChild(panel);
 
         var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 16);
-        (_confirmPanel as PanelContainer)!.AddChild(vbox);
+        panel.AddChild(vbox);
 
         var lbl = new Label
         {
@@ -260,13 +272,13 @@ public partial class MainMenu : Control
     {
         SoundManager.Play("ui_button_click");
         _optionsOverlay.Visible = true;
-        _optionsMenu.Visible = true;
+        _optionsCenterWrap.Visible = true;
         _optionsMenu.Open();
     }
 
     private void OnOptionsClosed()
     {
         _optionsOverlay.Visible = false;
-        _optionsMenu.Visible = false;
+        _optionsCenterWrap.Visible = false;
     }
 }
