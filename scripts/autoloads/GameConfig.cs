@@ -139,6 +139,18 @@ public partial class GameConfig : Node
     public string CutsceneTextCaboose   { get; private set; } = "If you fall too far behind the train,\nthe raid is over.";
     public string CutsceneTextFinal     { get; private set; } = "After each raid you can buy upgrades";
 
+    // Audio
+    public float MasterVolume      { get; private set; } = 1.0f;
+    public float MusicVolume       { get; private set; } = 0.7f;
+    public float SfxVolume         { get; private set; } = 1.0f;
+    public bool  MusicMuted        { get; private set; } = false;
+    public bool  SfxMuted          { get; private set; } = false;
+    public float MusicCrossfadeTime { get; private set; } = 2.0f;
+    public List<string> MusicMenu        { get; private set; } = new() { "menu_theme" };
+    public List<string> MusicRaid        { get; private set; } = new() { "raid_theme" };
+    public List<string> MusicAfterAction { get; private set; } = new() { "after_action_theme" };
+    public Dictionary<string, string> Sounds { get; private set; } = new();
+
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
 
@@ -325,6 +337,39 @@ public partial class GameConfig : Node
             var dn = dnVar.AsGodotDictionary();
             DayNightEnabled       = GetBool (dn, "enabled",        DayNightEnabled);
             DayNightPhaseDuration = GetFloat(dn, "phase_duration", DayNightPhaseDuration);
+        }
+
+        if (data.TryGetValue("audio", out var audioVar))
+        {
+            var a = audioVar.AsGodotDictionary();
+            MasterVolume       = GetFloat(a, "master_volume",       MasterVolume);
+            MusicVolume        = GetFloat(a, "music_volume",        MusicVolume);
+            SfxVolume          = GetFloat(a, "sfx_volume",          SfxVolume);
+            MusicMuted         = GetBool (a, "music_muted",         MusicMuted);
+            SfxMuted           = GetBool (a, "sfx_muted",           SfxMuted);
+            MusicCrossfadeTime = GetFloat(a, "music_crossfade_time", MusicCrossfadeTime);
+
+            if (a.TryGetValue("music_menu", out var mmV))
+            {
+                MusicMenu.Clear();
+                foreach (var t in mmV.AsGodotArray()) MusicMenu.Add(t.AsString());
+            }
+            if (a.TryGetValue("music_raid", out var mrV))
+            {
+                MusicRaid.Clear();
+                foreach (var t in mrV.AsGodotArray()) MusicRaid.Add(t.AsString());
+            }
+            if (a.TryGetValue("music_after_action", out var maV))
+            {
+                MusicAfterAction.Clear();
+                foreach (var t in maV.AsGodotArray()) MusicAfterAction.Add(t.AsString());
+            }
+            if (a.TryGetValue("sounds", out var sV))
+            {
+                Sounds.Clear();
+                foreach (var kv in sV.AsGodotDictionary())
+                    Sounds[kv.Key.AsString()] = kv.Value.AsString();
+            }
         }
 
         if (data.TryGetValue("cutscene", out var cutsceneVar))

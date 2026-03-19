@@ -127,6 +127,7 @@ public partial class Bullet : Node3D
                 }
             }
 
+            SoundManager.Play(hitDamageable ? "bullet_hit_damagable" : "bullet_hit_non_damagable");
             VfxSpawner.Spawn(hitDamageable ? "hit_damageable" : "hit_nondamageable", hitPos);
             GlobalPosition = hitPos;
             HitAndDestroy();

@@ -140,6 +140,7 @@ public partial class LevelManager : Node
         _warningActive = true;
         _warningTimer = WarningDuration;
         _hud.ShowWarning(_warningTimer);
+        SoundManager.Play("cliff_warning");
         GD.Print("[LevelManager] Player out of range. Warning started.");
     }
 

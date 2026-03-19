@@ -151,6 +151,7 @@ public partial class ClampNode : Node3D
         if (!IsAlive) return;
         IsAlive = false;
         EmitSignal(SignalName.Destroyed);
+        SoundManager.Play("clamp_destroyed");
         VfxSpawner.Spawn("clamp_destroyed", GlobalPosition);
 
         _mesh.Visible = false;

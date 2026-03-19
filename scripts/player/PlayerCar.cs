@@ -39,6 +39,8 @@ public partial class PlayerCar : Node3D
 
     // Side switching
     private bool _onRightSide = true;
+    private bool _wasAccelerating;
+    private bool _wasDecelerating;
     private bool _isSwitchingSides = false;
     private float _switchProgress = 0f; // 0 → 1
     private float _arcStartX;
@@ -192,6 +194,22 @@ public partial class PlayerCar : Node3D
             _relativeVelocity = Mathf.Clamp(_relativeVelocity,
                 _tsm.MaxRelativeBackward, _tsm.MaxRelativeForward);
 
+            // Loop sounds
+            bool isAccel = inputAxis > 0.01f;
+            bool isDecel = inputAxis < -0.01f;
+            if (isAccel != _wasAccelerating)
+            {
+                if (isAccel) SoundManager.PlayLoop("car_accel", "car_accelerating");
+                else         SoundManager.StopLoop("car_accel");
+                _wasAccelerating = isAccel;
+            }
+            if (isDecel != _wasDecelerating)
+            {
+                if (isDecel) SoundManager.PlayLoop("car_decel", "car_decelerating");
+                else         SoundManager.StopLoop("car_decel");
+                _wasDecelerating = isDecel;
+            }
+
             // Auto-flip from forward cliff detection
             CheckCliffAutoFlip(dt);
 
@@ -335,7 +353,11 @@ public partial class PlayerCar : Node3D
         _flipReversed        = false;
     }
 
-    public void FlashShieldHit() => _shield?.FlashHit();
+    public void FlashShieldHit()
+    {
+        SoundManager.Play("player_car_hit");
+        _shield?.FlashHit();
+    }
 
     public void SetTrainFrontZ(float z) => _trainFrontZ = z;
     public void DisableInput()

@@ -113,7 +113,8 @@ public partial class DroneNode : Node3D
         tween.TweenCallback(Callable.From(() =>
         {
             _spawnTweenDone = true;
-            VfxSpawner.Spawn("drone_deployed", GlobalPosition);
+            SoundManager.Play("drone_deployed");
+        VfxSpawner.Spawn("drone_deployed", GlobalPosition);
         }));
     }
 
@@ -308,6 +309,7 @@ public partial class DroneNode : Node3D
         _dyingVelocity = 0f;
         _deployer.OnDroneDestroyed();
         _area.SetDeferred(Area3D.PropertyName.Monitorable, false);
+        SoundManager.Play("drone_destroyed");
         VfxSpawner.Spawn("drone_destroyed", GlobalPosition);
     }
 

@@ -76,6 +76,7 @@ public partial class TrainSpeedManager : Node
         TrainZoomSpeed = CurrentTrainSpeed * 10f; // train physically moves away at 10× speed
         CurrentTrainSpeed = 0f;                   // environment scroll stops — player has halted
         MaxRelativeForward = float.MinValue / 2f;
+        SoundManager.Play("train_zoom_off");
         GD.Print("[TrainSpeedManager] Zoom away triggered!");
     }
 }

@@ -153,6 +153,7 @@ public partial class ContainerNode : Node3D
         else
             EmitSignal(SignalName.ContainerDestroyed);
 
+        SoundManager.Play("container_detached");
         VfxSpawner.Spawn("container_detach", GlobalPosition);
 
         // Fall off the train
@@ -169,7 +170,7 @@ public partial class ContainerNode : Node3D
         _isDead = true;
 
         EmitSignal(SignalName.ContainerDestroyed);
-
+        SoundManager.Play("container_destroyed");
         _material.AlbedoColor = Colors.White;
         _material.EmissionEnabled = true;
         _material.Emission = Colors.OrangeRed;

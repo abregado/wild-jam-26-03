@@ -351,6 +351,7 @@ public partial class RoofTurretNode : Node3D
         _preFired = false;
         _area.SetDeferred(Area3D.PropertyName.Monitorable, true);
         SetActiveVisuals();
+        SoundManager.Play("turret_activate");
         GD.Print($"[RoofTurret] {Name} activated.");
     }
 
@@ -361,6 +362,7 @@ public partial class RoofTurretNode : Node3D
         _cooldown = _config.RoofTurretReactivationTime;
         _area.SetDeferred(Area3D.PropertyName.Monitorable, false);
         SetInactiveVisuals(animate: true);
+        SoundManager.Play("turret_deactivate");
     }
 
     private void EnterRepairing()
@@ -370,6 +372,7 @@ public partial class RoofTurretNode : Node3D
         _area.SetDeferred(Area3D.PropertyName.Monitorable, false);
         _domeMat.AlbedoColor = ColorDomeRep;
         SetRepairingVisuals();
+        SoundManager.Play("turret_destroyed");
         GD.Print($"[RoofTurret] {Name} damaged — repairing for {_cooldown:F1}s.");
     }
 

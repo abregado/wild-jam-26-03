@@ -15,6 +15,7 @@ public partial class Main : Node3D
         var turret = playerCar.GetNode<Turret>("Turret");
         hud.SetReferences(playerCar, turret);
 
+        MusicManager.PlayContext("raid");
         GD.Print("[Main] Scene ready. Game starting.");
     }
 }

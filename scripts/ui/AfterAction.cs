@@ -69,6 +69,7 @@ public partial class AfterAction : Control
 
         _nextRaidButton.Pressed += OnNextRaid;
         Input.MouseMode = Input.MouseModeEnum.Visible;
+        MusicManager.PlayContext("after_action");
 
         BuildResourceCounter();
 
@@ -274,9 +275,15 @@ public partial class AfterAction : Control
         UpdateDots();
 
         if (_clicksOnCurrent >= ClicksRequired)
+        {
+            SoundManager.Play("ui_container_open");
             PlayCrack();
+        }
         else
+        {
+            SoundManager.Play("ui_container_click");
             PlayJiggle(intense: false);
+        }
     }
 
     private void PlayJiggle(bool intense)
@@ -455,6 +462,7 @@ public partial class AfterAction : Control
                 _session.PlayerResources.TryGetValue(cap, out var existing);
                 _session.PlayerResources[cap] = existing + capC;
                 UpdateResourceLabel(cap);
+                SoundManager.Play("ui_resource_arrive");
 
                 // Pulse the counter label
                 if (capT != null)
@@ -538,6 +546,8 @@ public partial class AfterAction : Control
             UpdateResourceLabel(kv.Key);
         }
         _config.ApplyUpgrade(u);
+        _session.AppliedUpgrades.Add(u.Id);
+        SoundManager.Play("ui_upgrade_buy");
         card.MarkPurchased();
         foreach (var c in _cards)
             c.RefreshAffordability();
@@ -547,6 +557,7 @@ public partial class AfterAction : Control
 
     private void OnNextRaid()
     {
+        _session.WriteToSave();
         _session.Reset();
         GetNode<TrainSpeedManager>("/root/TrainSpeedManager").ResetSpeed();
         GetTree().ChangeSceneToFile("res://scenes/Main.tscn");

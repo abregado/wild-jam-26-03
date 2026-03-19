@@ -18,6 +18,7 @@ Use these slash commands for common tasks:
 | `/tune-balance` | Review and adjust difficulty or feel parameters in `game_config.json` |
 | `/new-environment-pool` | Add a new scrolling decoration pool to the environment |
 | `/edit-cutscene` | Modify the intro cutscene or fly-in (waypoints, timing, camera path, text) |
+| `/add-sound` | Add a new sound effect (config entry + placeholder WAV + callsite) |
 
 ---
 
@@ -39,6 +40,9 @@ Use these slash commands for common tasks:
 | 12 — Polish & Config Wiring | ✅ Done | All config fields wired |
 | 13 — Enemy Drones | ✅ Done | DeployerNode.cs, DroneNode.cs, DroneBullet.cs, Shield.cs |
 | 14 — Cutscene System | ✅ Done | CutsceneManager.cs, RingIndicator.cs, GameSession.IsFirstRaid |
+| 15 — Audio System    | ✅ Done | SoundManager.cs, MusicManager.cs, SettingsManager.cs |
+| 16 — Main Menu       | ✅ Done | MainMenu.tscn/cs, OptionsMenu.cs |
+| 17 — Save System     | ✅ Done | SaveManager.cs, GameSession save-slot fields |
 
 ---
 
@@ -59,7 +63,11 @@ Use these slash commands for common tasks:
 | Name | Script | Key API |
 |------|--------|---------|
 | `GameConfig` | `scripts/autoloads/GameConfig.cs` | All config values as typed properties; `ApplyUpgrade(name)` |
-| `GameSession` | `scripts/autoloads/GameSession.cs` | `CollectedCargo`, `Reset()`, `OnCargoDetached()`; `IsFirstRaid` + `MarkRaidStarted()` |
+| `SettingsManager` | `scripts/autoloads/SettingsManager.cs` | Audio bus setup; volume/mute API; key-binding save/load |
+| `SoundManager` | `scripts/autoloads/SoundManager.cs` | `Play(id)`, `PlayLoop(key,id)`, `StopLoop(key)` — static API |
+| `MusicManager` | `scripts/autoloads/MusicManager.cs` | `PlayContext("menu"\|"raid"\|"after_action")` — crossfade |
+| `SaveManager` | `scripts/autoloads/SaveManager.cs` | `LoadSlot(n)`, `SaveSlot(n, session)`, `DeleteSlot(n)` |
+| `GameSession` | `scripts/autoloads/GameSession.cs` | Per-raid cargo; `ActiveSlot`, `RaidsPlayed`, `AppliedUpgrades`; `LoadFromSave()`, `WriteToSave()` |
 | `TrainSpeedManager` | `scripts/autoloads/TrainSpeedManager.cs` | `CurrentTrainSpeed`, `TrainZoomSpeed`, `TriggerZoomAway()` |
 
 ---
