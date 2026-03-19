@@ -125,6 +125,15 @@ public partial class GameConfig : Node
     public float ObstacleCubeSpacing { get; private set; } = 6f;
     public float CliffCubeWidth { get; private set; } = 9f;
 
+    // Cutscene texts
+    public string CutsceneTextContainer { get; private set; } = "Containers hold loot.\nUse a Beacon to see what is inside.";
+    public string CutsceneTextScrap     { get; private set; } = "Some containers are filled with useless Scrap.\nIgnore them.";
+    public string CutsceneTextClamp     { get; private set; } = "Shoot clamps to detach a container.";
+    public string CutsceneTextDeployer  { get; private set; } = "Deploys enemy drones to slow you down.";
+    public string CutsceneTextTurret    { get; private set; } = "Will defend adjacent carriages.";
+    public string CutsceneTextCaboose   { get; private set; } = "If you fall too far behind the train,\nthe raid is over.";
+    public string CutsceneTextFinal     { get; private set; } = "After each raid you can buy upgrades";
+
     // Cargo Types
     public List<CargoType> CargoTypes { get; private set; } = new();
 
@@ -305,6 +314,18 @@ public partial class GameConfig : Node
             CliffCubeWidth             = GetFloat(o, "cliff_cube_width",     CliffCubeWidth);
         }
 
+        if (data.TryGetValue("cutscene", out var cutsceneVar))
+        {
+            var cs = cutsceneVar.AsGodotDictionary();
+            CutsceneTextContainer = GetString(cs, "text_container", CutsceneTextContainer);
+            CutsceneTextScrap     = GetString(cs, "text_scrap",     CutsceneTextScrap);
+            CutsceneTextClamp     = GetString(cs, "text_clamp",     CutsceneTextClamp);
+            CutsceneTextDeployer  = GetString(cs, "text_deployer",  CutsceneTextDeployer);
+            CutsceneTextTurret    = GetString(cs, "text_turret",    CutsceneTextTurret);
+            CutsceneTextCaboose   = GetString(cs, "text_caboose",   CutsceneTextCaboose);
+            CutsceneTextFinal     = GetString(cs, "text_final",     CutsceneTextFinal);
+        }
+
         if (data.TryGetValue("cargo_types", out var cargoVar))
         {
             CargoTypes.Clear();
@@ -421,6 +442,9 @@ public partial class GameConfig : Node
             new() { Name = "Scrap",       Color = new Color("#888888"), IsScrap = true },
         };
     }
+
+    private static string GetString(Godot.Collections.Dictionary d, string key, string fallback)
+        => d.TryGetValue(key, out var v) ? v.AsString() : fallback;
 
     private static float GetFloat(Godot.Collections.Dictionary d, string key, float fallback)
         => d.TryGetValue(key, out var v) ? (float)v.AsDouble() : fallback;

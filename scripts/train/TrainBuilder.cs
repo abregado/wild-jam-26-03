@@ -43,7 +43,11 @@ public partial class TrainBuilder : Node3D
     public float LocomotiveZ { get; private set; }
     public float CabooseZ    { get; private set; }   // world-local Z of the caboose rear
     public List<ContainerNode> AllContainers { get; } = new();
+    public List<DeployerNode>  AllDeployers  { get; } = new();
+    public List<RoofTurretNode> AllRoofTurrets { get; } = new();
+    public Node3D? CabooseNode { get; private set; }
     private readonly List<Carriage> _carriages = new();
+    private bool _isFirstBuild = true;
 
     public override void _Ready()
     {
@@ -63,6 +67,8 @@ public partial class TrainBuilder : Node3D
         foreach (Node child in GetChildren())
             child.QueueFree();
         AllContainers.Clear();
+        AllDeployers.Clear();
+        AllRoofTurrets.Clear();
         _carriages.Clear();
 
         var rng = new RandomNumberGenerator();
@@ -84,6 +90,7 @@ public partial class TrainBuilder : Node3D
                                     "res://assets/models/train/caboose.glb");
         caboose.Position = new Vector3(0, CarriageY, currentZ + CabooseLength / 2f);
         AddChild(caboose);
+        CabooseNode = caboose;
         currentZ += CabooseLength + CarGap;
 
         // --- Carriages ---
@@ -114,12 +121,53 @@ public partial class TrainBuilder : Node3D
 
         // Deployers + activation signal wiring (done after all carriages are built)
         _playerCar ??= GetTree().Root.FindChild("PlayerCar", true, false) as PlayerCar;
+
+        // First build: guarantee at least one deployer and one roof turret exist
+        if (_isFirstBuild)
+        {
+            bool hasDeployer = false;
+            bool hasTurret   = false;
+            foreach (var c in _carriages)
+            {
+                if (c.Deployers.Count > 0)   hasDeployer = true;
+                if (c.RoofTurrets.Count > 0) hasTurret   = true;
+            }
+
+            float localY = CarriageHeight / 2f + DeployerHeight / 2f;
+
+            if (!hasDeployer && _carriages.Count > 0)
+            {
+                var target = _carriages[_carriages.Count / 2];
+                var d = new DeployerNode();
+                d.Name     = $"Deployer_{target.Name}_forced";
+                d.Position = new Vector3(0f, localY, 0f);
+                target.AddChild(d);
+                target.Deployers.Add(d);
+            }
+
+            if (!hasTurret && _carriages.Count > 0)
+            {
+                int idx    = _carriages.Count > 1 ? (_carriages.Count / 2 + 1) % _carriages.Count : 0;
+                var target = _carriages[idx];
+                var t = new RoofTurretNode();
+                t.Name     = $"RoofTurret_{target.Name}_forced";
+                t.Position = new Vector3(0f, localY, CarriageLength * 0.25f);
+                target.AddChild(t);
+                target.RoofTurrets.Add(t);
+            }
+
+            _isFirstBuild = false;
+        }
+
         foreach (var carriage in _carriages)
         {
             foreach (var deployer in carriage.Deployers)
                 deployer.SetPlayerCar(_playerCar);
             foreach (var turret in carriage.RoofTurrets)
                 turret.SetPlayerCar(_playerCar);
+
+            AllDeployers.AddRange(carriage.Deployers);
+            AllRoofTurrets.AddRange(carriage.RoofTurrets);
         }
         WireDeployerActivation();
 

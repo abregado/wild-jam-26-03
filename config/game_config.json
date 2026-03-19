@@ -109,6 +109,15 @@
     "cube_spacing": 6.0,
     "cliff_cube_width": 9.0
   },
+  "cutscene": {
+    "text_container": "Containers hold loot.\nUse a Beacon to see what is inside.",
+    "text_scrap":     "Some containers are filled with useless Scrap.\nIgnore them.",
+    "text_clamp":     "Shoot clamps to detach a container.",
+    "text_deployer":  "Drone bays will send enemy drones to slow you down.",
+    "text_turret":    "Turrets will defend adjacent carriages.",
+    "text_caboose":   "If you fall too far behind the train,\nthe raid is over.",
+    "text_final":     "After each raid you can buy upgrades for your car"
+  },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },
     { "name": "Chemicals",   "color": "#44FF88" },

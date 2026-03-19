@@ -39,3 +39,7 @@ Once the waypoints are done, Spawn the player car at the front of the train. The
 The text is shown in a box that is centered on the middle of the right half of the screen. The object that is being focused is positioned in the center of the left half of the screen.
 
 Once the cutscene is complete, change to the player camera and start the game.
+
+The camera waits at each waypoint. The player can press Spacebar or left mouse button to continue to the next waypoint. 
+
+Other UI (button prompts, speed, ect) are hidden during the cutscene.

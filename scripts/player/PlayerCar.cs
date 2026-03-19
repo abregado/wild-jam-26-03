@@ -341,9 +341,15 @@ public partial class PlayerCar : Node3D
     public void DisableInput()
     {
         _inputEnabled = false;
+        _captureDesired = false;
         Input.MouseMode = Input.MouseModeEnum.Visible;
     }
-    public void EnableInput() => _inputEnabled = true;
+
+    public void EnableInput()
+    {
+        _inputEnabled = true;
+        _captureDesired = true;
+    }
 
     public float GetDistanceBehindFront() => _trainFrontZ - Position.Z;
 }

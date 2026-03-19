@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/Main.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/train/TrainBuilder.cs" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/player/PlayerCar.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="6"]
 [ext_resource type="Script" path="res://scripts/environment/ObstaclePool.cs" id="7"]
+[ext_resource type="Script" path="res://scripts/CutsceneManager.cs" id="8"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.15, 0.35, 0.7, 1)
@@ -68,3 +69,6 @@ Zone = 2
 [node name="PlateauPool" type="Node3D" parent="ObstacleSystem"]
 script = ExtResource("7")
 Zone = 3
+
+[node name="CutsceneManager" type="Node" parent="."]
+script = ExtResource("8")

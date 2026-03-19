@@ -35,6 +35,7 @@ public partial class ContainerNode : Node3D
     private float _hp;
     private int _beaconCount;
     private readonly List<ClampNode> _clamps = new();
+    public IReadOnlyList<ClampNode> Clamps => _clamps;
     private int _livingClamps;
     private MeshInstance3D _mesh = null!;
     private StandardMaterial3D _material = null!;

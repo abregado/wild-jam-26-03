@@ -32,6 +32,7 @@ public partial class LevelManager : Node
     private float _zoomTimer = -1f;
     private bool _warningActive;
     private bool _zoomTriggered;
+    private bool _cutsceneActive = true;
 
     public override void _Ready()
     {
@@ -46,19 +47,30 @@ public partial class LevelManager : Node
         _playerCar.SetTrainFrontZ(_trainBuilder.LocomotiveZ);
         GD.Print($"[LevelManager] LocomotiveZ={_trainBuilder.LocomotiveZ}, CabooseZ={_trainBuilder.CabooseZ}, PlayerStart Z={startZ}");
 
-        // Auto-beacon all Scrap containers so they appear grey from the start
+        // Auto-beacon all Scrap containers so they appear grey from the start.
+        // Pre-scanning non-Scrap containers is deferred until OnCutsceneDone()
+        // so that containers appear untagged (orange) during the intro cutscene.
         foreach (var c in _trainBuilder.AllContainers)
             if (c.IsScrap) c.Tag();
+    }
 
-        // Pre-scan N random non-Scrap containers at the start of the raid
+    /// <summary>Called by CutsceneManager when the intro cutscene finishes.</summary>
+    public void OnCutsceneDone()
+    {
+        _cutsceneActive = false;
+
         var config = GetNode<GameConfig>("/root/GameConfig");
         int preScanCount = config.NumberPreScannedContainers;
         if (preScanCount > 0)
             PreScanContainers(preScanCount);
+
+        GD.Print("[LevelManager] Cutscene done. Gameplay active.");
     }
 
     public override void _Process(double delta)
     {
+        if (_cutsceneActive) return;
+
         float dt = (float)delta;
 
         // Update player's reference to train front
