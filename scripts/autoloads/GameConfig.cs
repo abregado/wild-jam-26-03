@@ -29,11 +29,18 @@ public partial class GameConfig : Node
     public int MaxCarriages { get; private set; } = 6;
     public int MinContainersPerCarriage { get; private set; } = 1;
     public int MaxContainersPerCarriage { get; private set; } = 3;
-    public int MinClampsPerContainer { get; private set; } = 2;
-    public int MaxClampsPerContainer { get; private set; } = 4;
 
-    // Clamps / Containers
-    public float ClampHitpoints { get; private set; } = 50f;
+    // Clamp setups
+    public float ClampSetupWeightSingle { get; private set; } = 0.2f;
+    public float ClampSetupWeightDouble { get; private set; } = 0.3f;
+    public float ClampSetupWeightTriple { get; private set; } = 0.3f;
+    public float ClampSetupWeightFour   { get; private set; } = 0.2f;
+    public float SingleClampHp          { get; private set; } = 80f;
+    public float DoubleClampHp          { get; private set; } = 15f;
+    public float TripleClampHp          { get; private set; } = 40f;
+    public float FourClampHp            { get; private set; } = 40f;
+
+    // Containers
     public float ContainerHitpoints { get; private set; } = 150f;
 
     // Player
@@ -184,14 +191,19 @@ public partial class GameConfig : Node
             MaxCarriages = GetInt(tr, "max_carriages", MaxCarriages);
             MinContainersPerCarriage = GetInt(tr, "min_containers_per_carriage", MinContainersPerCarriage);
             MaxContainersPerCarriage = GetInt(tr, "max_containers_per_carriage", MaxContainersPerCarriage);
-            MinClampsPerContainer = GetInt(tr, "min_clamps_per_container", MinClampsPerContainer);
-            MaxClampsPerContainer = GetInt(tr, "max_clamps_per_container", MaxClampsPerContainer);
         }
 
-        if (data.TryGetValue("clamps", out var clampsVar))
+        if (data.TryGetValue("clamp_setups", out var clampsVar))
         {
             var c = clampsVar.AsGodotDictionary();
-            ClampHitpoints = GetFloat(c, "clamp_hitpoints", ClampHitpoints);
+            ClampSetupWeightSingle = GetFloat(c, "single_weight", ClampSetupWeightSingle);
+            ClampSetupWeightDouble = GetFloat(c, "double_weight", ClampSetupWeightDouble);
+            ClampSetupWeightTriple = GetFloat(c, "triple_weight", ClampSetupWeightTriple);
+            ClampSetupWeightFour   = GetFloat(c, "four_weight",   ClampSetupWeightFour);
+            SingleClampHp          = GetFloat(c, "single_clamp_hp", SingleClampHp);
+            DoubleClampHp          = GetFloat(c, "double_clamp_hp", DoubleClampHp);
+            TripleClampHp          = GetFloat(c, "triple_clamp_hp", TripleClampHp);
+            FourClampHp            = GetFloat(c, "four_clamp_hp",   FourClampHp);
         }
 
         if (data.TryGetValue("containers", out var containersVar))
@@ -302,8 +314,9 @@ public partial class GameConfig : Node
                 var d = item.AsGodotDictionary();
                 var name = d["name"].AsString();
                 var colorHex = d["color"].AsString();
+                bool isScrap = d.TryGetValue("is_scrap", out var isScrapV) && isScrapV.AsBool();
                 if (Color.HtmlIsValid(colorHex))
-                    CargoTypes.Add(new CargoType { Name = name, Color = new Color(colorHex) });
+                    CargoTypes.Add(new CargoType { Name = name, Color = new Color(colorHex), IsScrap = isScrap });
             }
         }
 
@@ -405,6 +418,7 @@ public partial class GameConfig : Node
             new() { Name = "Chemicals",   Color = new Color("#44FF88") },
             new() { Name = "Weapons",     Color = new Color("#FF4444") },
             new() { Name = "Credits",     Color = new Color("#FFCC00") },
+            new() { Name = "Scrap",       Color = new Color("#888888"), IsScrap = true },
         };
     }
 
@@ -420,8 +434,9 @@ public partial class GameConfig : Node
 
 public class CargoType
 {
-    public string Name { get; set; } = "";
-    public Color Color { get; set; } = Colors.Gray;
+    public string Name    { get; set; } = "";
+    public Color  Color   { get; set; } = Colors.Gray;
+    public bool   IsScrap { get; set; } = false;
 }
 
 public class StatModifier

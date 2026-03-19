@@ -46,7 +46,11 @@ public partial class LevelManager : Node
         _playerCar.SetTrainFrontZ(_trainBuilder.LocomotiveZ);
         GD.Print($"[LevelManager] LocomotiveZ={_trainBuilder.LocomotiveZ}, CabooseZ={_trainBuilder.CabooseZ}, PlayerStart Z={startZ}");
 
-        // Pre-scan N random containers at the start of the raid
+        // Auto-beacon all Scrap containers so they appear grey from the start
+        foreach (var c in _trainBuilder.AllContainers)
+            if (c.IsScrap) c.Tag();
+
+        // Pre-scan N random non-Scrap containers at the start of the raid
         var config = GetNode<GameConfig>("/root/GameConfig");
         int preScanCount = config.NumberPreScannedContainers;
         if (preScanCount > 0)
@@ -99,10 +103,10 @@ public partial class LevelManager : Node
 
     private void PreScanContainers(int count)
     {
-        // Build list of taggable (non-locked) containers and shuffle it
+        // Build list of taggable (non-Scrap) containers and shuffle it
         var taggable = new List<ContainerNode>();
         foreach (var c in _trainBuilder.AllContainers)
-            if (!c.IsLocked) taggable.Add(c);
+            if (!c.IsScrap) taggable.Add(c);
 
         var rng = new RandomNumberGenerator();
         rng.Randomize();

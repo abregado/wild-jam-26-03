@@ -1,6 +1,5 @@
 using Godot;
 using System.Collections.Generic;
-using System.Linq;
 
 /// <summary>
 /// Builds the train at runtime from config values.
@@ -168,6 +167,21 @@ public partial class TrainBuilder : Node3D
         }
     }
 
+    private enum ClampSetup { Single, Double, Triple, Four }
+
+    private ClampSetup PickClampSetup(RandomNumberGenerator rng)
+    {
+        float total = _config.ClampSetupWeightSingle + _config.ClampSetupWeightDouble
+                    + _config.ClampSetupWeightTriple + _config.ClampSetupWeightFour;
+        float roll = rng.Randf() * total;
+        if (roll < _config.ClampSetupWeightSingle) return ClampSetup.Single;
+        roll -= _config.ClampSetupWeightSingle;
+        if (roll < _config.ClampSetupWeightDouble) return ClampSetup.Double;
+        roll -= _config.ClampSetupWeightDouble;
+        if (roll < _config.ClampSetupWeightTriple) return ClampSetup.Triple;
+        return ClampSetup.Four;
+    }
+
     private void AttachContainers(Carriage carriage, RandomNumberGenerator rng)
     {
         int slotsPerSide = _config.MaxContainersPerCarriage;
@@ -177,15 +191,18 @@ public partial class TrainBuilder : Node3D
         var gameSession = GetNode<GameSession>("/root/GameSession");
         var trainSpeedManager = GetNode<TrainSpeedManager>("/root/TrainSpeedManager");
 
+        // Determine clamp setup for all containers on this carriage
+        var setup = PickClampSetup(rng);
+
         // Build containers on both sides — right (+X) then left (-X)
-        var allContainers = new List<(ContainerNode node, bool isRightSide)>();
         foreach (int side in new[] { 1, -1 })
         {
+            bool isRightSide = side > 0;
             float xPos = side * ContainerXOffset;
             for (int i = 0; i < slotsPerSide; i++)
             {
                 var containerInstance = (ContainerNode)_containerScene.Instantiate();
-                containerInstance.Name = $"Container_{carriage.Name}_{(side > 0 ? "R" : "L")}_{i}";
+                containerInstance.Name = $"Container_{carriage.Name}_{(isRightSide ? "R" : "L")}_{i}";
 
                 containerInstance.Position = new Vector3(xPos, 0f, startZ + i * spacing);
                 carriage.AddChild(containerInstance);
@@ -198,32 +215,9 @@ public partial class TrainBuilder : Node3D
                 containerInstance.ContainerDestroyed += gameSession.OnContainerDestroyed;
                 containerInstance.ContainerDestroyed += trainSpeedManager.OnContainerDestroyed;
 
-                allContainers.Add((containerInstance, side > 0));
                 AllContainers.Add(containerInstance);
+                AttachClampsForSetup(containerInstance, isRightSide, setup, rng);
             }
-        }
-
-        // Choose which containers get clamps; the rest are locked (damageable but not detachable)
-        int numClamped = Mathf.Min(
-            rng.RandiRange(_config.MinContainersPerCarriage, _config.MaxContainersPerCarriage),
-            allContainers.Count);
-
-        // Fisher-Yates shuffle to pick clamped containers randomly
-        var indices = Enumerable.Range(0, allContainers.Count).ToList();
-        for (int i = indices.Count - 1; i > 0; i--)
-        {
-            int j = rng.RandiRange(0, i);
-            (indices[i], indices[j]) = (indices[j], indices[i]);
-        }
-        var clampedSet = new HashSet<int>(indices.Take(numClamped));
-
-        for (int i = 0; i < allContainers.Count; i++)
-        {
-            var (container, isRightSide) = allContainers[i];
-            if (clampedSet.Contains(i))
-                AttachClamps(container, isRightSide, rng);
-            else
-                container.SetLocked();
         }
     }
 
@@ -259,21 +253,70 @@ public partial class TrainBuilder : Node3D
         }
     }
 
-    private void AttachClamps(ContainerNode container, bool isRightSide, RandomNumberGenerator rng)
+    private void AttachClampsForSetup(ContainerNode container, bool isRightSide, ClampSetup setup, RandomNumberGenerator rng)
     {
-        int count = rng.RandiRange(_config.MinClampsPerContainer, _config.MaxClampsPerContainer);
-        float spacing = ContainerDepth / (count + 1);
-        // Outward face: +X for right-side containers, -X for left-side
-        float clampX = isRightSide ? ContainerWidth / 2f + 0.15f : -(ContainerWidth / 2f + 0.15f);
+        float clampX     = isRightSide ? ContainerWidth / 2f + 0.15f : -(ContainerWidth / 2f + 0.15f);
+        float halfH      = ContainerHeight / 2f;
+        float halfD      = ContainerDepth  / 2f;
+        const float faceOff = 0.15f;
 
-        for (int i = 0; i < count; i++)
+        float hp;
+        Vector3[] positions;
+
+        switch (setup)
+        {
+            case ClampSetup.Single:
+                hp = _config.SingleClampHp;
+                positions = new[] { new Vector3(clampX, 0f, 0f) };
+                break;
+
+            case ClampSetup.Double:
+                hp = _config.DoubleClampHp;
+                // 3 face-centre candidates; pick 2 at random via Fisher-Yates
+                var candidates = new[]
+                {
+                    new Vector3(clampX, 0f,                0f),  // outward face
+                    new Vector3(0f,     halfH + faceOff,   0f),  // top face
+                    new Vector3(0f,   -(halfH + faceOff),  0f),  // bottom face
+                };
+                for (int i = 2; i > 0; i--)
+                {
+                    int j = rng.RandiRange(0, i);
+                    (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+                }
+                positions = new[] { candidates[0], candidates[1] };
+                break;
+
+            case ClampSetup.Triple:
+                hp = _config.TripleClampHp;
+                float zStep = ContainerDepth / 3f;
+                positions = new[]
+                {
+                    new Vector3(0f, halfH + faceOff, -zStep),
+                    new Vector3(0f, halfH + faceOff,  0f),
+                    new Vector3(0f, halfH + faceOff,  zStep),
+                };
+                break;
+
+            default: // Four
+                hp = _config.FourClampHp;
+                positions = new[]
+                {
+                    new Vector3(clampX,  halfH * 0.7f,  halfD * 0.7f),
+                    new Vector3(clampX,  halfH * 0.7f, -halfD * 0.7f),
+                    new Vector3(clampX, -halfH * 0.7f,  halfD * 0.7f),
+                    new Vector3(clampX, -halfH * 0.7f, -halfD * 0.7f),
+                };
+                break;
+        }
+
+        foreach (var pos in positions)
         {
             var clampInstance = (ClampNode)_clampScene.Instantiate();
-            clampInstance.Name = $"Clamp_{i}";
-
-            float zOffset = -ContainerDepth / 2f + spacing * (i + 1);
-            clampInstance.Position = new Vector3(clampX, 0f, zOffset);
+            clampInstance.Name = $"Clamp_{pos.X:F1}_{pos.Y:F1}_{pos.Z:F1}";
+            clampInstance.Position = pos;
             container.AddChild(clampInstance);
+            clampInstance.SetHitpoints(hp);
             container.RegisterClamp(clampInstance);
         }
     }

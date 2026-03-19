@@ -21,11 +21,10 @@ public partial class ClampNode : Node3D
     private MeshInstance3D _mesh = null!;
     private bool _damageTakenFired;
 
+    public void SetHitpoints(float hp) => _hp = hp;
+
     public override void _Ready()
     {
-        var config = GetNode<GameConfig>("/root/GameConfig");
-        _hp = config.ClampHitpoints;
-
         _mesh = GetNode<MeshInstance3D>("MeshSlot");
 
         var area = GetNodeOrNull<Area3D>("Area3D");

@@ -20,12 +20,17 @@
     "min_carriages": 6,
     "max_carriages": 9,
     "min_containers_per_carriage": 1,
-    "max_containers_per_carriage": 3,
-    "min_clamps_per_container": 2,
-    "max_clamps_per_container": 4
+    "max_containers_per_carriage": 3
   },
-  "clamps": {
-    "clamp_hitpoints": 40.0
+  "clamp_setups": {
+    "single_weight": 0.2,
+    "double_weight": 0.3,
+    "triple_weight": 0.3,
+    "four_weight": 0.2,
+    "single_clamp_hp": 80.0,
+    "double_clamp_hp": 15.0,
+    "triple_clamp_hp": 40.0,
+    "four_clamp_hp": 40.0
   },
   "containers": {
     "container_hitpoints": 150.0
@@ -106,9 +111,10 @@
   },
   "cargo_types": [
     { "name": "Electronics", "color": "#4488FF" },
-    { "name": "Chemicals", "color": "#44FF88" },
-    { "name": "Weapons", "color": "#FF4444" },
-    { "name": "Credits", "color": "#FFCC00" }
+    { "name": "Chemicals",   "color": "#44FF88" },
+    { "name": "Weapons",     "color": "#FF4444" },
+    { "name": "Credits",     "color": "#FFCC00" },
+    { "name": "Scrap",       "color": "#888888", "is_scrap": true }
   ],
   "upgrades": [
 
