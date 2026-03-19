@@ -124,6 +124,12 @@ public partial class OptionsMenu : PanelContainer
             _bindButtons[action] = bindBtn;
         }
 
+        var resetRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        vbox.AddChild(resetRow);
+        var resetBtn = new Button { Text = "RESET TO DEFAULTS", CustomMinimumSize = new Vector2(200f, 32f) };
+        resetBtn.Pressed += OnResetBindings;
+        resetRow.AddChild(resetBtn);
+
         // ── Save / Cancel ────────────────────────────────────────────────────
         vbox.AddChild(new HSeparator());
         var btnRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
@@ -235,6 +241,17 @@ public partial class OptionsMenu : PanelContainer
             CancelRebind();
             GetViewport().SetInputAsHandled();
         }
+    }
+
+    // ── Reset bindings ────────────────────────────────────────────────────────
+
+    private void OnResetBindings()
+    {
+        InputMap.LoadFromProjectSettings();
+        foreach (var (_, action) in SettingsManager.RebindableActions)
+            if (_bindButtons.TryGetValue(action, out var btn))
+                btn.Text = SettingsManager.GetBindingLabel(action);
+        CancelRebind();
     }
 
     // ── Save / Cancel ─────────────────────────────────────────────────────────

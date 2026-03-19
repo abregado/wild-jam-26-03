@@ -28,11 +28,12 @@ public partial class AfterAction : Control
     private HBoxContainer _resourceLabels = null!;
 
     // ── Shared ────────────────────────────────────────────────────────────────
-    private Label         _phaseLabel     = null!;
-    private VBoxContainer _boxBreakArea   = null!;
-    private VBoxContainer _haulList       = null!;
-    private HBoxContainer _cardRow        = null!;
-    private Button        _nextRaidButton = null!;
+    private Label         _phaseLabel       = null!;
+    private VBoxContainer _boxBreakArea     = null!;
+    private VBoxContainer _haulList         = null!;
+    private HBoxContainer _cardRow          = null!;
+    private Button        _nextRaidButton   = null!;
+    private Button        _saveAndQuitButton = null!;
 
     // ── Box-break 3-D state ───────────────────────────────────────────────────
     private const int ClicksRequired = 4;
@@ -66,6 +67,24 @@ public partial class AfterAction : Control
         _haulList        = GetNode<VBoxContainer>("MainContent/HaulList");
         _cardRow         = GetNode<HBoxContainer>("MainContent/CardRow");
         _nextRaidButton  = GetNode<Button>("MainContent/NextRaidButton");
+
+        // Reparent NextRaid into a button row and add Save & Quit alongside it
+        var btnRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        btnRow.AddThemeConstantOverride("separation", 20);
+        var btnParent = _nextRaidButton.GetParent();
+        int btnIdx    = _nextRaidButton.GetIndex();
+        btnParent.AddChild(btnRow);
+        btnParent.MoveChild(btnRow, btnIdx);
+        _nextRaidButton.Reparent(btnRow);
+
+        _saveAndQuitButton = new Button
+        {
+            Text = "SAVE & QUIT",
+            CustomMinimumSize = new Vector2(160f, 48f),
+            Disabled = true,
+        };
+        _saveAndQuitButton.Pressed += OnSaveAndQuit;
+        btnRow.AddChild(_saveAndQuitButton);
 
         _nextRaidButton.Pressed += OnNextRaid;
         Input.MouseMode = Input.MouseModeEnum.Visible;
@@ -490,7 +509,8 @@ public partial class AfterAction : Control
         _phaseLabel.Text = "CHOOSE UPGRADE";
         _haulList.Visible = false;
         _cardRow.Visible  = true;
-        _nextRaidButton.Disabled = false;
+        _nextRaidButton.Disabled    = false;
+        _saveAndQuitButton.Disabled = false;
 
         var affordable = _config.Upgrades
             .Where(CanAfford)
@@ -553,7 +573,7 @@ public partial class AfterAction : Control
             c.RefreshAffordability();
     }
 
-    // ── Next Raid ─────────────────────────────────────────────────────────────
+    // ── Next Raid / Save & Quit ───────────────────────────────────────────────
 
     private void OnNextRaid()
     {
@@ -561,6 +581,12 @@ public partial class AfterAction : Control
         _session.Reset();
         GetNode<TrainSpeedManager>("/root/TrainSpeedManager").ResetSpeed();
         GetTree().ChangeSceneToFile("res://scenes/Main.tscn");
+    }
+
+    private void OnSaveAndQuit()
+    {
+        _session.WriteToSave();
+        GetTree().Quit();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

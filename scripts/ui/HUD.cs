@@ -105,20 +105,20 @@ public partial class HUD : CanvasLayer
     {
         var vbox = GetNode<VBoxContainer>("ButtonPrompts");
 
-        // WASD cross: W centred above A-S-D, then "Move" label
+        // Movement cross with dynamic bound keys
         var moveRow = new HBoxContainer();
         moveRow.AddThemeConstantOverride("separation", 8);
-        moveRow.AddChild(BuildWasdCross());
+        moveRow.AddChild(BuildMoveCross());
         moveRow.AddChild(MakePromptLabel("Move"));
         vbox.AddChild(moveRow);
 
-        AddPromptRow(vbox, "mouse_left_outline.png",       "Fire");
-        AddPromptRow(vbox, "mouse_right_outline.png",      "Beacon");
-        _flipOverRow  = AddPromptRow(vbox, "keyboard_space_outline.png",   "Flip Over");
-        _flipUnderRow = AddPromptRow(vbox, "keyboard_ctrl_outline.png", "Flip Under");
+        AddPromptRow(vbox, "fire_primary",       "Fire");
+        AddPromptRow(vbox, "fire_beacon",        "Beacon");
+        _flipOverRow  = AddPromptRow(vbox, "switch_side_over",  "Flip Over");
+        _flipUnderRow = AddPromptRow(vbox, "switch_side_under", "Flip Under");
     }
 
-    private static VBoxContainer BuildWasdCross()
+    private static VBoxContainer BuildMoveCross()
     {
         const int G = 28;
         const int Sep = 3;
@@ -126,32 +126,98 @@ public partial class HUD : CanvasLayer
         var cross = new VBoxContainer();
         cross.AddThemeConstantOverride("separation", Sep);
 
-        // Top row: spacer + W (W sits above S)
+        // Top row: spacer + Forward key
         var topRow = new HBoxContainer();
         topRow.AddThemeConstantOverride("separation", Sep);
         topRow.AddChild(new Control { CustomMinimumSize = new Vector2(G + Sep, G) });
-        topRow.AddChild(MakeGlyph("keyboard_w_outline.png", G));
+        topRow.AddChild(GetActionGlyph("move_forward", G));
         cross.AddChild(topRow);
 
-        // Bottom row: A S D
+        // Bottom row: Left Backward Right
         var botRow = new HBoxContainer();
         botRow.AddThemeConstantOverride("separation", Sep);
-        botRow.AddChild(MakeGlyph("keyboard_a_outline.png", G));
-        botRow.AddChild(MakeGlyph("keyboard_s_outline.png", G));
-        botRow.AddChild(MakeGlyph("keyboard_d_outline.png", G));
+        botRow.AddChild(GetActionGlyph("move_left",    G));
+        botRow.AddChild(GetActionGlyph("move_backward", G));
+        botRow.AddChild(GetActionGlyph("move_right",   G));
         cross.AddChild(botRow);
 
         return cross;
     }
 
-    private static HBoxContainer AddPromptRow(VBoxContainer parent, string glyphFile, string label)
+    private static HBoxContainer AddPromptRow(VBoxContainer parent, string action, string label)
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 8);
-        row.AddChild(MakeGlyph(glyphFile, 28));
+        row.AddChild(GetActionGlyph(action, 28));
         row.AddChild(MakePromptLabel(label));
         parent.AddChild(row);
         return row;
+    }
+
+    private static Control GetActionGlyph(string action, int size)
+    {
+        var events = InputMap.ActionGetEvents(action);
+        if (events.Count > 0)
+        {
+            var ev = events[0];
+            if (ev is InputEventKey key)
+            {
+                var k = key.PhysicalKeycode != Key.None ? key.PhysicalKeycode : key.Keycode;
+                var file = KeyToGlyphFile(k);
+                if (file != null)
+                {
+                    var tex = GD.Load<Texture2D>($"res://assets/glyphs/{file}");
+                    if (tex != null) return MakeGlyph(file, size);
+                }
+                return MakeKeyLabel(OS.GetKeycodeString(k), size);
+            }
+            if (ev is InputEventMouseButton mb)
+            {
+                string? mbFile = mb.ButtonIndex switch
+                {
+                    MouseButton.Left  => "mouse_left_outline.png",
+                    MouseButton.Right => "mouse_right_outline.png",
+                    _ => null,
+                };
+                if (mbFile != null)
+                {
+                    var tex = GD.Load<Texture2D>($"res://assets/glyphs/{mbFile}");
+                    if (tex != null) return MakeGlyph(mbFile, size);
+                }
+                string mbName = mb.ButtonIndex == MouseButton.Left ? "LMB" :
+                                mb.ButtonIndex == MouseButton.Right ? "RMB" : "Mouse";
+                return MakeKeyLabel(mbName, size);
+            }
+        }
+        return MakeKeyLabel("?", size);
+    }
+
+    private static string? KeyToGlyphFile(Key k)
+    {
+        if (k >= Key.A && k <= Key.Z)
+        {
+            char letter = (char)((int)k - (int)Key.A + 'a');
+            return $"keyboard_{letter}_outline.png";
+        }
+        return k switch
+        {
+            Key.Space => "keyboard_space_outline.png",
+            Key.Ctrl  => "keyboard_ctrl_outline.png",
+            _ => null,
+        };
+    }
+
+    private static Label MakeKeyLabel(string text, int size)
+    {
+        var lbl = new Label
+        {
+            Text = text,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            CustomMinimumSize = new Vector2(size, size),
+        };
+        lbl.AddThemeFontSizeOverride("font_size", 11);
+        return lbl;
     }
 
     private static TextureRect MakeGlyph(string file, int size) => new TextureRect

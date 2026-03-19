@@ -56,7 +56,8 @@ public partial class PlayerCar : Node3D
 
     private Shield? _shield;
 
-    public float RelativeVelocity => _relativeVelocity;
+    public bool  IsInputEnabled    => _inputEnabled;
+    public float RelativeVelocity  => _relativeVelocity;
     // Simplified: the only gate on manual flips is "not already flipping"
     public bool CanSwitchUnder => !_isSwitchingSides;
     public bool CanSwitchOver  => !_isSwitchingSides;
@@ -82,28 +83,11 @@ public partial class PlayerCar : Node3D
         // events stop arriving even though the mouse is still technically captured.
         GetWindow().FocusEntered += OnViewportFocusEntered;
 
-        GD.Print("[PlayerCar] Ready. Mouse will auto-capture. Escape = release.");
+        GD.Print("[PlayerCar] Ready. Mouse will auto-capture. Escape = pause menu.");
     }
 
     public override void _Input(InputEvent @event)
     {
-        // Escape = release mouse and stop auto-capture.
-        if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.Escape)
-        {
-            _captureDesired = false;
-            Input.MouseMode = Input.MouseModeEnum.Visible;
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        // Any click while capture was released = re-enable auto-capture.
-        if (@event is InputEventMouseButton mb && mb.Pressed && !_captureDesired)
-        {
-            _captureDesired = true;
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
         if (Input.MouseMode != Input.MouseModeEnum.Captured) return;
         if (!_inputEnabled) return;
 
