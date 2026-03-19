@@ -91,15 +91,6 @@ public partial class PlayerCar : Node3D
         if (Input.MouseMode != Input.MouseModeEnum.Captured) return;
         if (!_inputEnabled) return;
 
-        if (@event is InputEventKey key2 && key2.Pressed && !key2.Echo
-            && key2.Keycode == Key.Ctrl)
-        {
-            if (!_isSwitchingSides && IsFlipPathClear(-1))
-                StartSideSwitch(-1);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
         if (@event is InputEventMouseMotion motion)
         {
             _lookYaw -= motion.Relative.X * 0.25f;
@@ -197,9 +188,11 @@ public partial class PlayerCar : Node3D
             // Auto-flip from forward cliff detection
             CheckCliffAutoFlip(dt);
 
-            // Manual flip over (Space)
+            // Manual flips
             if (Input.IsActionJustPressed("switch_side_over") && IsFlipPathClear(+1))
                 StartSideSwitch(+1);
+            if (Input.IsActionJustPressed("switch_side_under") && IsFlipPathClear(-1))
+                StartSideSwitch(-1);
         }
 
         float activeVelocity = _isSwitchingSides ? _flipLockedVelocity : _relativeVelocity;

@@ -105,7 +105,10 @@ public partial class SettingsManager : Node
         if (events.Count == 0) return "—";
         var ev = events[0];
         if (ev is InputEventKey key)
-            return OS.GetKeycodeString(key.PhysicalKeycode);
+        {
+            var k = key.PhysicalKeycode != Key.None ? key.PhysicalKeycode : key.Keycode;
+            return OS.GetKeycodeString(k);
+        }
         if (ev is InputEventMouseButton mb)
             return mb.ButtonIndex switch
             {
