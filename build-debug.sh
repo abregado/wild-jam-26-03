@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GODOT="${GODOT:-D:/Programs/Godot_v4.6.1-stable_mono_win64/Godot_v4.6.1-stable_mono_win64.exe}"
+GODOT="${GODOT:-D:/Programs/Godot_v4.6.1-stable_win64/Godot_v4.6.1-stable_win64.exe}"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build_debug"
 

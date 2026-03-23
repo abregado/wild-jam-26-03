@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set GODOT=D:\Programs\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64.exe
+set GODOT=D:\Programs\Godot_v4.6.1-stable_win64\Godot_v4.6.1-stable_win64.exe
 set PROJECT_DIR=%~dp0
 set PROJECT_DIR_NOSLASH=%PROJECT_DIR:~0,-1%
 set BUILD_DIR=%PROJECT_DIR%build_debug
