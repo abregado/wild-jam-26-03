@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-dotnet build && "$GODOT_PATH" --path "D:/repos/wild-jam-26-03"
+"$GODOT_PATH" --path "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

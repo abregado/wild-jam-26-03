@@ -1,6 +1,6 @@
 # Wild Jam 26-03 — CLAUDE.md
 
-Godot 4.6.1 GDScript game (ported from C# Mono for web export). Engine: `D:\Programs\Godot_v4.6.1-stable_win64\` (standard build — **not** Mono)
+Godot 4.6.1 GDScript game (ported from C# Mono for web export). Engine: `D:\Programs\Godot_v4.61-stable_win64\` (standard build — **not** Mono)
 
 ---
 

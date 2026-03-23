@@ -1,23 +1,10 @@
 @echo off
 setlocal
 
-set GODOT=D:\Programs\Godot_v4.6.1-stable_win64\Godot_v4.6.1-stable_win64.exe
+set GODOT=D:\Programs\Godot_v4.61-stable_win64\Godot_v4.6.1-stable_win64.exe
 set PROJECT_DIR=%~dp0
 set PROJECT_DIR_NOSLASH=%PROJECT_DIR:~0,-1%
 set DIST_DIR=%PROJECT_DIR%dist
-
-if not exist "%PROJECT_DIR%WildJam2603.sln" (
-    echo ERROR: WildJam2603.sln not found.
-    echo In the Godot editor: Project ^> Tools ^> C# ^> Create C# Solution
-    exit /b 1
-)
-
-echo === Building C# assemblies ===
-dotnet build "%PROJECT_DIR%WildJam2603.sln" --configuration ExportRelease
-if errorlevel 1 (
-    echo ERROR: dotnet build failed
-    exit /b 1
-)
 
 echo === Preparing output directories ===
 if exist "%PROJECT_DIR%build"       rmdir /s /q "%PROJECT_DIR%build"
