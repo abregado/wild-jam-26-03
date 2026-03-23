@@ -193,7 +193,7 @@ func _build_confirm_panel() -> void:
 func _refresh_slots() -> void:
 	for i in 3:
 		if SaveManager.slot_exists(i):
-			var meta := SaveManager.get_slot_meta(i)
+			var meta: Array = SaveManager.get_slot_meta(i)
 			var raids: int    = meta[0]
 			var date: String  = meta[1]
 			_slot_buttons[i].text    = "SLOT %d\nRaids: %d\n%s" % [i + 1, raids, date]
@@ -208,7 +208,7 @@ func _refresh_slots() -> void:
 func _on_slot_pressed(slot: int) -> void:
 	SoundManager.play("ui_button_click")
 	if SaveManager.slot_exists(slot):
-		var data := SaveManager.load_slot(slot)
+		var data: Dictionary = SaveManager.load_slot(slot)
 		GameSession.load_from_save(data, slot)
 	else:
 		GameSession.start_new_game(slot)

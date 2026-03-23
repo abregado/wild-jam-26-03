@@ -409,7 +409,7 @@ func _load_config() -> void:
 
 ## Applies an upgrade's modifiers to the live config values.
 ## All flat deltas are added first, then all multipliers are applied.
-func apply_upgrade(u: UpgradeDefinition) -> void:
+func apply_upgrade(u) -> void:
 	for m in u.modifiers:
 		if m.flat != 0.0:
 			_apply_flat(m.stat, m.flat)

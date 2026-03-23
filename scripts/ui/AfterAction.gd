@@ -184,7 +184,7 @@ class UpgradeCard extends PanelContainer:
 	func refresh_affordability() -> void:
 		if not _revealed or _purchased or _def == null:
 			return
-		var can := _owner_ref.can_afford(_def)
+		var can: bool = _owner_ref.can_afford(_def)
 		_buy_button.disabled = not can
 		modulate = Color.WHITE if can else Color(0.5, 0.5, 0.5, 1.0)
 
@@ -405,7 +405,7 @@ func _load_box(index: int) -> void:
 	_progress_dots_label.visible  = true
 	_crack_reveal_label.visible   = false
 
-	var total := GameSession.unidentified_cargo.size()
+	var total: int = GameSession.unidentified_cargo.size()
 	_box_count_label.text = "Container %d / %d" % [index + 1, total]
 	_update_dots()
 
@@ -570,7 +570,7 @@ func _animate_resource_fly() -> void:
 		add_child(fly_lbl)
 		fly_lbl.global_position = src_pos - Vector2(40.0, 10.0)
 
-		var cap_name  := cargo_name
+		var cap_name: String  = cargo_name
 		var cap_count := count
 		var cap_target := target_label
 
@@ -643,7 +643,7 @@ func _start_cards_in() -> void:
 
 # ── Upgrade Purchase ───────────────────────────────────────────────────────────
 
-func can_afford(u: Dictionary) -> bool:
+func can_afford(u) -> bool:
 	for k in u["cost"]:
 		var have: int = GameSession.player_resources.get(k, 0)
 		if have < u["cost"][k]:
@@ -651,7 +651,7 @@ func can_afford(u: Dictionary) -> bool:
 	return true
 
 
-func purchase_upgrade(u: Dictionary, card) -> void:
+func purchase_upgrade(u, card) -> void:
 	if not can_afford(u):
 		return
 	for k in u["cost"]:
