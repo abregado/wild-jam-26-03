@@ -38,7 +38,7 @@ SceneRoot [Node3D]
     CollisionShape3D [ConvexPolygonShape3D]
 ```
 
-The code in `PillarPool.cs` sets `CollisionLayer = 1` on the generated
+The code in `PillarPool.gd` sets `collision_layer = 1` on the generated
 `StaticBody3D` after instantiation so it participates in bullet raycasts.
 
 ---

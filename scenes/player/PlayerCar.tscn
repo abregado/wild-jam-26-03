@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3]
 
-[ext_resource type="Script" path="res://scripts/player/PlayerCar.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/player/PlayerCar.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/Turret.tscn" id="2"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_1"]

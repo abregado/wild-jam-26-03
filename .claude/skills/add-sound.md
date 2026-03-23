@@ -38,21 +38,21 @@ For example:
 ```
 The value is the filename **without** `.wav`. Two IDs can share one filename.
 
-### 4. No GameConfig.cs change needed
+### 4. No GameConfig.gd change needed
 
-`GameConfig.Sounds` is a `Dictionary<string, string>` that loads all entries automatically.
+`GameConfig.sounds` is a `Dictionary` that loads all entries automatically.
 `SoundManager` loads all streams at startup — no code change needed there either.
 
 ### 5. Wire the call
 
 In the script where the sound should play, call:
-```csharp
-SoundManager.Play("<sound_id>");
+```gdscript
+SoundManager.play("<sound_id>")
 ```
 For looping sounds (engine hum, ambience):
-```csharp
-SoundManager.PlayLoop("<loop_key>", "<sound_id>");  // start
-SoundManager.StopLoop("<loop_key>");                 // stop
+```gdscript
+SoundManager.play_loop("<loop_key>", "<sound_id>")  # start
+SoundManager.stop_loop("<loop_key>")                 # stop
 ```
 
 ### 6. Volume
@@ -73,7 +73,7 @@ so apply it directly to the `AudioStreamPlayer` in a custom callsite.
    ```json
    "beacon_fire": "beacon_fire"
    ```
-3. In `scripts/projectiles/Beacon.cs`, at the point where the beacon launches:
-   ```csharp
-   SoundManager.Play("beacon_fire");
+3. In `scripts/projectiles/Beacon.gd`, at the point where the beacon launches:
+   ```gdscript
+   SoundManager.play("beacon_fire")
    ```

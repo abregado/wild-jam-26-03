@@ -1,6 +1,6 @@
 # Enemy System
 
-Scripts: `scripts/enemies/DroneNode.cs`, `scripts/enemies/DeployerNode.cs`, `scripts/enemies/RoofTurretNode.cs`
+Scripts: `scripts/enemies/DroneNode.gd`, `scripts/enemies/DeployerNode.gd`, `scripts/enemies/RoofTurretNode.gd`
 
 ---
 
@@ -16,7 +16,7 @@ Layer 1 (value 1)  = Deployer bodies        — world/train layer, bullets stop 
 
 ## Deployer
 
-`DeployerNode.cs` — sits on carriage roof.
+`DeployerNode.gd` — sits on carriage roof.
 
 - **Activates** when a nearby container or clamp takes damage (wired via signal in `TrainBuilder`).
 - Spawns up to `MaxDronesPerDeployer` drones (config), one at a time on `DeployerCooldown`.
@@ -27,7 +27,7 @@ Layer 1 (value 1)  = Deployer bodies        — world/train layer, bullets stop 
 
 ## Drone state machine
 
-`DroneNode.cs`
+`DroneNode.gd`
 
 ```
 Deploying          → fly upward from deployer, then MovingToPosition
@@ -57,7 +57,7 @@ Dying              → gravity fall, QueueFree after landing
 
 ## Roof Turret
 
-`RoofTurretNode.cs` — mounted on carriage roof.
+`RoofTurretNode.gd` — mounted on carriage roof.
 
 States: `Inactive → Active → Repairing`
 
@@ -75,11 +75,11 @@ Rules:
 
 ## Drone bullet
 
-`DroneBullet.cs`
+`DroneBullet.gd`
 
 - Has no physics collision (`mask = 0`).
 - Flies toward a stored world-space target position.
-- On arrival: if not blocked by Shield → calls `_playerCar.TakeSpeedDamage(CarSpeedDamagePerHit)`.
+- On arrival: if not blocked by Shield → calls `_player_car.take_speed_damage(car_speed_damage_per_hit)`.
 - On arrival: always `QueueFree()`.
 
 ---

@@ -14,8 +14,8 @@ one with its GLB mesh — a one-time setup per scene.
 Once wired, future GLB replacements (dropping a new file and reimporting)
 update the mesh automatically without repeating these steps.
 
-> **Note**: `PillarPool` and the caboose/locomotive are wired in C# code
-> (`PillarPool.cs` and `TrainBuilder.cs`) and load from GLB at runtime — no
+> **Note**: `PillarPool` and the caboose/locomotive are wired in GDScript
+> (`PillarPool.gd` and `TrainBuilder.gd`) and load from GLB at runtime — no
 > scene editing needed for those.
 
 ---

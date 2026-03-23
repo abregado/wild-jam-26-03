@@ -8,24 +8,24 @@ Two camera sequences play at the start of `Main.tscn` before handing control to 
 
 | File | Role |
 |---|---|
-| `scripts/CutsceneManager.cs` | Main controller — `PlayCutscene()` and `PlayFlyIn()` |
-| `scripts/ui/RingIndicator.cs` | Screen-space bouncing ring drawn around a 3-D target |
-| `scripts/autoloads/GameSession.cs` | `IsFirstRaid` flag + `MarkRaidStarted()` |
-| `scripts/autoloads/GameConfig.cs` | `CutsceneText*` properties |
+| `scripts/CutsceneManager.gd` | Main controller — `play_cutscene()` and `play_fly_in()` |
+| `scripts/ui/RingIndicator.gd` | Screen-space bouncing ring drawn around a 3-D target |
+| `scripts/autoloads/GameSession.gd` | `is_first_raid` flag + `mark_raid_started()` |
+| `scripts/autoloads/GameConfig.gd` | `cutscene_text_*` properties |
 | `config/game_config.json` | `"cutscene"` section — all waypoint text strings |
 
 ---
 
 ## Which sequence plays
 
-`CutsceneManager._Ready()` reads `GameSession.IsFirstRaid`:
+`CutsceneManager._ready()` reads `GameSession.is_first_raid`:
 
 ```
-IsFirstRaid == true  →  PlayCutscene()   (first-time tutorial)
-IsFirstRaid == false →  PlayFlyIn()      (subsequent raids)
+is_first_raid == true  →  play_cutscene()   (first-time tutorial)
+is_first_raid == false →  play_fly_in()     (subsequent raids)
 ```
 
-`IsFirstRaid` starts `true`. `MarkRaidStarted()` is called at the top of the first-raid path, setting it `false` before the scene can be reloaded. `GameSession` is an autoload so it persists across `ChangeSceneToFile` calls; `Reset()` does **not** touch this flag.
+`is_first_raid` starts `true`. `mark_raid_started()` is called at the top of the first-raid path, setting it `false` before the scene can be reloaded. `GameSession` is an autoload so it persists across `get_tree().change_scene_to_file()` calls; `reset()` does **not** touch this flag.
 
 ---
 
@@ -78,13 +78,13 @@ Short cinematic (~4 s), no text or ring.
 
 At handover, the cutscene camera is tweened to the player camera's **exact** world position and orientation before switching, eliminating any visual pop:
 
-```csharp
-Vector3 playerCamPos        = _playerCamera.GlobalPosition;
-Vector3 playerCamLookTarget = playerCamPos - _playerCamera.GlobalBasis.Z * 20f;
-_desiredLook = playerCamLookTarget;
-await MoveTo(playerCamPos, <duration>);
-_smoothLook = playerCamLookTarget;   // eliminate residual lerp error
-_playerCamera.MakeCurrent();
+```gdscript
+var player_cam_pos := _player_camera.global_position
+var player_cam_look := player_cam_pos - _player_camera.global_basis.z * 20.0
+_desired_look = player_cam_look
+await _move_to(player_cam_pos, duration)
+_smooth_look = player_cam_look   # eliminate residual lerp error
+_player_camera.make_current()
 ```
 
 ---
@@ -93,9 +93,9 @@ _playerCamera.MakeCurrent();
 
 `_Process` lerps `_smoothLook` toward `_desiredLook` every frame:
 
-```csharp
-_smoothLook = _smoothLook.Lerp(_desiredLook, delta * LookLerpSpeed);  // LookLerpSpeed = 2.8
-_cam.LookAt(_smoothLook, Vector3.Up);
+```gdscript
+_smooth_look = _smooth_look.lerp(_desired_look, delta * LOOK_LERP_SPEED)  # LOOK_LERP_SPEED = 2.8
+_cam.look_at(_smooth_look, Vector3.UP)
 ```
 
 `_desiredLook` is **always set before `MoveTo()`** so rotation begins blending while the camera is still travelling to the new position.
@@ -106,10 +106,10 @@ _cam.LookAt(_smoothLook, Vector3.Up);
 
 Places the focused object at **(0.25 W, 0.5 H)** — the centre of the left screen half.
 
-```csharp
-Vector3 camRight = Vector3.Up.Cross(-forward).Normalized();
-float   halfFov  = Mathf.DegToRad(fovDeg * 0.5f);
-Vector3 lookAt   = target + camRight * (0.5f * Mathf.Tan(halfFov) * dist);
+```gdscript
+var cam_right := Vector3.UP.cross(-forward).normalized()
+var half_fov  := deg_to_rad(fov_deg * 0.5)
+var look_at   := target + cam_right * (0.5 * tan(half_fov) * dist)
 ```
 
 Camera offset vectors used per target type:
@@ -122,22 +122,22 @@ Camera offset vectors used per target type:
 
 ---
 
-## Ring indicator — `RingIndicator.cs`
+## Ring indicator — `RingIndicator.gd`
 
 Screen-space `Control` node that draws a bouncing gold arc around a 3-D target.
 
-- `Target` — the `Node3D` to track (set by `ShowText`).
-- `WorldRadius` — world-space radius of the target; drives pixel ring size.
+- `target` — the `Node3D` to track (set by `show_text`).
+- `world_radius` — world-space radius of the target; drives pixel ring size.
 
 Pixel radius computed each frame:
 
 ```
-pixelRadius = (WorldRadius / dist) * (viewWidth / (2 * tan(halfFov))) + 12
+pixel_radius = (world_radius / dist) * (view_width / (2 * tan(half_fov))) + 12
 ```
 
 Clamped to [20, 350]. Per-target values:
 
-| Target | WorldRadius |
+| Target | world_radius |
 |---|---|
 | Container, player car | 1.5 |
 | Deployer, roof turret | 0.7 |
@@ -150,11 +150,11 @@ Clamped to [20, 350]. Per-target values:
 
 | System | How |
 |---|---|
-| Player input | `PlayerCar.DisableInput()` → `_inputEnabled = false`, `_captureDesired = false` |
-| HUD | `_hud.Visible = false` |
-| Obstacle spawning | `ObstacleSystem.ProcessMode = Disabled` (cascades to all pool children) |
-| Out-of-range countdown | `LevelManager._cutsceneActive = true`; `_Process` returns early |
-| Pre-scan (container tagging) | Deferred to `LevelManager.OnCutsceneDone()` so containers appear untagged during tutorial |
+| Player input | `PlayerCar.disable_input()` → `_input_enabled = false`, `_capture_desired = false` |
+| HUD | `_hud.visible = false` |
+| Obstacle spawning | `ObstacleSystem.process_mode = PROCESS_MODE_DISABLED` (cascades to all pool children) |
+| Out-of-range countdown | `LevelManager._cutscene_active = true`; `_process` returns early |
+| Pre-scan (container tagging) | Deferred to `LevelManager.on_cutscene_done()` so containers appear untagged during tutorial |
 
 ---
 
@@ -162,9 +162,9 @@ Clamped to [20, 350]. Per-target values:
 
 | Constant | Location | Default | Effect |
 |---|---|---|---|
-| `SweepTime` | `CutsceneManager.cs` | 1.2 s | Travel time between waypoints |
-| `HoldTime` | `CutsceneManager.cs` | 3.5 s | Max pause per waypoint |
-| `LookLerpSpeed` | `CutsceneManager.cs` | 2.8 | Camera rotation blend speed |
-| Fly-in arc duration | `PlayFlyIn()` inline | 2.2 s | Time to reach arc apex |
-| Fly-in descent duration | `PlayFlyIn()` inline | 2.0 s | Time from apex to player cam |
-| First-raid blend duration | `PlayCutscene()` inline | 1.2 s | Final glide to player cam |
+| `SWEEP_TIME` | `CutsceneManager.gd` | 1.2 s | Travel time between waypoints |
+| `HOLD_TIME` | `CutsceneManager.gd` | 3.5 s | Max pause per waypoint |
+| `LOOK_LERP_SPEED` | `CutsceneManager.gd` | 2.8 | Camera rotation blend speed |
+| Fly-in arc duration | `_play_fly_in()` inline | 2.2 s | Time to reach arc apex |
+| Fly-in descent duration | `_play_fly_in()` inline | 2.0 s | Time from apex to player cam |
+| First-raid blend duration | `_play_cutscene()` inline | 1.2 s | Final glide to player cam |

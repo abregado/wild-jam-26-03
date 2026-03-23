@@ -1,6 +1,6 @@
 # Environment System
 
-Scripts: `scripts/environment/TrackEnvironment.cs`, `scripts/environment/PillarPool.cs`, `scripts/environment/CloudPool.cs`, `scripts/environment/RockPillarPool.cs`, `scripts/environment/RubblePool.cs`, `scripts/environment/ObstaclePool.cs`, `scripts/environment/ObstacleManager.cs`
+Scripts: `scripts/environment/TrackEnvironment.gd`, `scripts/environment/PillarPool.gd`, `scripts/environment/CloudPool.gd`, `scripts/environment/RockPillarPool.gd`, `scripts/environment/RubblePool.gd`, `scripts/environment/ObstaclePool.gd`, `scripts/environment/ObstacleManager.gd`
 
 ---
 
@@ -11,13 +11,13 @@ The train does not move — the **world scrolls backward** to simulate motion.
 - Ground and track use `res://scripts/shaders/ground_scroll.gdshader`.
 - Shader parameter `scroll_speed` (float, world units/sec) is set each frame from `TrainSpeedManager.CurrentTrainSpeed`.
 - Scroll direction: UV.y increases with time → ground appears to move backward (−Z).
-- `TrackEnvironment.cs` sets the shader parameter and calls `Update()` on all pools each frame.
+- `TrackEnvironment.gd` sets the shader parameter and calls `update()` on all pools each frame.
 
 ---
 
 ## Pillar pool
 
-`PillarPool.cs`
+`PillarPool.gd`
 
 - 8 pillars (track support columns), spacing from `GameConfig.PillarSpacing`.
 - Move in **−Z direction** each frame at train speed.
@@ -30,7 +30,7 @@ The train does not move — the **world scrolls backward** to simulate motion.
 
 ## Cloud pool
 
-`CloudPool.cs`
+`CloudPool.gd`
 
 - 25 clouds (configurable via `CloudPoolSize`).
 - Scroll at `CloudParallaxFactor × trainSpeed` (parallax — slower than ground).
@@ -41,7 +41,7 @@ The train does not move — the **world scrolls backward** to simulate motion.
 
 ## Rock pillar pool
 
-`RockPillarPool.cs`
+`RockPillarPool.gd`
 
 - Distant left/right rock formations, spacing `RockPillarSpacing`.
 - Two pools (left side, right side) with half-spacing stagger.
@@ -52,7 +52,7 @@ The train does not move — the **world scrolls backward** to simulate motion.
 
 ## Rubble pool
 
-`RubblePool.cs`
+`RubblePool.gd`
 
 - Ground-level debris cubes (`RubblePoolSize` = 245 by default).
 - Desert colour palette, randomly tilted.
@@ -63,7 +63,7 @@ The train does not move — the **world scrolls backward** to simulate motion.
 
 ## Obstacle system
 
-`ObstacleManager.cs` + `ObstaclePool.cs`
+`ObstacleManager.gd` + `ObstaclePool.gd`
 
 `ObstacleManager` is a finite state machine: `Startup → Warning → Active → Warning → Active → ...`
 
@@ -86,7 +86,7 @@ Four `ObstaclePool` instances handle separate zones:
 
 ## Adding a new decoration pool
 
-Use the `/new-environment-pool` skill. The skill walks through creating the pool script, adding config fields, and registering it in `TrackEnvironment.cs`.
+Use the `/new-environment-pool` skill. The skill walks through creating the pool script, adding config fields, and registering it in `TrackEnvironment.gd`.
 
 ---
 
