@@ -2,6 +2,9 @@
 
 A rail-shooter built in Godot 4.6 (C#). You fly alongside a speeding train, blasting clamps off cargo containers to steal the load before the locomotive pulls out of range.
 
+Now
+![Screenshot](docs/screenshot-new.png)
+Before
 ![Screenshot](docs/screenshot.png)
 
 ## Download
