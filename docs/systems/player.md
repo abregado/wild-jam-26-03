@@ -1,6 +1,6 @@
 # Player System
 
-Scripts: `scripts/player/PlayerCar.cs`, `scripts/player/Turret.cs`, `scripts/player/Shield.cs`
+Scripts: `scripts/player/PlayerCar.gd`, `scripts/player/Turret.gd`, `scripts/player/Shield.gd`
 
 ---
 
@@ -8,7 +8,7 @@ Scripts: `scripts/player/PlayerCar.cs`, `scripts/player/Turret.cs`, `scripts/pla
 
 - Player flies at **X = ±8.0** (right = +8, left = -8), **Y = `CarDriveHeight`** (default 8.0).
 - Car body is always fixed at `RotationDegrees.Y = 90` (faces toward train, i.e. -X direction). Never rotates.
-- **Camera** is a child of `PlayerCar` and handles all aim: `RotationDegrees = new Vector3(pitch, lookYaw, 0)`. `_lookYaw` is relative to the car.
+- **Camera** is a child of `PlayerCar` and handles all aim: `rotation_degrees = Vector3(pitch, look_yaw, 0)`. `_look_yaw` is relative to the car.
 - **Turret** is a child of `Camera3D` — it automatically inherits camera pitch and yaw, so the barrels always follow the crosshair.
 
 ---
@@ -28,7 +28,7 @@ Scripts: `scripts/player/PlayerCar.cs`, `scripts/player/Turret.cs`, `scripts/pla
 - Arc formula:
   - `newX = _arcStartX * cos(t * π)`
   - `newY = YHeight ± arcHeight * sin(t * π)` (+ for over, − for under)
-- Arc heights: `OverArcHeight = 6f`, `UnderArcHeight = 6f` (constants in `PlayerCar.cs`).
+- Arc heights: `OVER_ARC_HEIGHT = 6.0`, `UNDER_ARC_HEIGHT = 6.0` (constants in `PlayerCar.gd`).
 - Duration: `GameConfig.SideChangeTime`.
 - Camera aim is **unaffected** during the arc — only position moves.
 - `CanSwitchUnder` is recalculated every frame by `PredictUnderArcClear()`, which sphere-queries the arc path against layer 9 (flip-path collision from obstacles).
@@ -50,7 +50,7 @@ Scripts: `scripts/player/PlayerCar.cs`, `scripts/player/Turret.cs`, `scripts/pla
 - Turret slerps toward `-_camera.GlobalTransform.Basis.Z` (camera forward direction) each frame.
 - Slerp speed: `TurretTrackingSpeed` from config.
 - Pitch clamped: cannot aim below `TurretMaxPitchDown` degrees from horizontal.
-- **Alternating barrels**: `_fireFromLeft` bool toggles each shot; `ActiveBarrelTip` property returns the active barrel tip transform.
+- **Alternating barrels**: `_fire_from_left` bool toggles each shot; `active_barrel_tip` property returns the active barrel tip transform.
 - Barrel tips in `Turret.tscn`: `BarrelTipLeft` at `(-0.18, -0.42, -0.9)` and `BarrelTipRight` at `(0.18, -0.42, -0.9)`.
 - Yellow dot crosshair: raycast from camera position; converges on aim point when tracking catches up.
 
@@ -67,7 +67,7 @@ Scripts: `scripts/player/PlayerCar.cs`, `scripts/player/Turret.cs`, `scripts/pla
 
 ## Shield
 
-- Transparent sphere around the player, `Shield.cs`.
+- Transparent sphere around the player, `Shield.gd`.
 - Monitors drone bullets (layer 64, mask 64).
 - If a bullet's arrival angle is ≤ `ShieldBlockAngle` from camera forward → bullet destroyed, shield flashes blue.
 - Otherwise → bullet passes through; applies `CarSpeedDamagePerHit` to player's max forward velocity.
@@ -76,15 +76,15 @@ Scripts: `scripts/player/PlayerCar.cs`, `scripts/player/Turret.cs`, `scripts/pla
 
 ## Mouse capture
 
-- `GetWindow().FocusEntered` is connected in `PlayerCar._Ready()`.
-- `OnViewportFocusEntered()` cycles `Input.MouseMode` from `Visible → Captured` to recover from OS capture loss.
+- `get_window().focus_entered` is connected in `PlayerCar._ready()`.
+- `_on_viewport_focus_entered()` cycles `Input.mouse_mode` from `MOUSE_MODE_VISIBLE → MOUSE_MODE_CAPTURED` to recover from OS capture loss.
 - Mouse motion handler does **not** call `SetInputAsHandled()`.
 
 ---
 
 ## HUD node paths
 
-Used by `HUD.cs` and `LevelManager.cs`:
+Used by `HUD.gd` and `LevelManager.gd`:
 
 | Node path | Type | Purpose |
 |---|---|---|

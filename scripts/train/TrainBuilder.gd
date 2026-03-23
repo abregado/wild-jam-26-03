@@ -161,7 +161,7 @@ func _build_train() -> void:
 
 func _wire_deployer_activation() -> void:
 	for i in _carriages.size():
-		var has_roof_enemies := _carriages[i].deployers.size() > 0 or _carriages[i].roof_turrets.size() > 0
+		var has_roof_enemies: bool = _carriages[i].deployers.size() > 0 or _carriages[i].roof_turrets.size() > 0
 		if not has_roof_enemies:
 			continue
 
@@ -206,8 +206,8 @@ func _attach_containers(carriage: Node3D, slots_per_side: int, rng: RandomNumber
 	var setup := _pick_clamp_setup(rng)
 
 	for side in [1, -1]:
-		var is_right_side := side > 0
-		var x_pos := side * CONTAINER_X_OFFSET
+		var is_right_side: bool = side > 0
+		var x_pos: float = side * CONTAINER_X_OFFSET
 		for i in slots_per_side:
 			var container: ContainerNode = _container_scene.instantiate() as ContainerNode
 			container.name = "Container_%s_%s_%d" % [carriage.name, "R" if is_right_side else "L", i]
@@ -280,7 +280,7 @@ func _attach_clamps_for_setup(container: ContainerNode, is_right_side: bool, set
 			# Partial Fisher-Yates: shuffle to pick 2 at random
 			for i in range(2, 0, -1):
 				var j := rng.randi_range(0, i)
-				var tmp := candidates[i]
+				var tmp: Vector3 = candidates[i]
 				candidates[i] = candidates[j]
 				candidates[j] = tmp
 			positions = [candidates[0], candidates[1]]

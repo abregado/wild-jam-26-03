@@ -1,6 +1,6 @@
 # Wild Jam 26-03 — CLAUDE.md
 
-Godot 4.6.1 Mono / C# game. Engine: `D:\Programs\Godot_v4.6.1-stable_mono_win64\`
+Godot 4.6.1 GDScript game (ported from C# Mono for web export). Engine: `D:\Programs\Godot_v4.6.1-stable_win64\` (standard build — **not** Mono)
 
 ---
 
@@ -62,17 +62,17 @@ Use these slash commands for common tasks:
 
 | Name | Script | Key API |
 |------|--------|---------|
-| `GameConfig` | `scripts/autoloads/GameConfig.cs` | All config values as typed properties; `ApplyUpgrade(name)` |
-| `SettingsManager` | `scripts/autoloads/SettingsManager.cs` | Audio bus setup; volume/mute API; key-binding save/load |
-| `SoundManager` | `scripts/autoloads/SoundManager.cs` | `Play(id)`, `PlayLoop(key,id)`, `StopLoop(key)` — static API |
-| `MusicManager` | `scripts/autoloads/MusicManager.cs` | `PlayContext("menu"\|"raid"\|"after_action")` — crossfade |
-| `SaveManager` | `scripts/autoloads/SaveManager.cs` | `LoadSlot(n)`, `SaveSlot(n, session)`, `DeleteSlot(n)` |
-| `GameSession` | `scripts/autoloads/GameSession.cs` | Per-raid cargo; `ActiveSlot`, `RaidsPlayed`, `AppliedUpgrades`; `LoadFromSave()`, `WriteToSave()` |
-| `TrainSpeedManager` | `scripts/autoloads/TrainSpeedManager.cs` | `CurrentTrainSpeed`, `TrainZoomSpeed`, `TriggerZoomAway()` |
+| `GameConfig` | `scripts/autoloads/GameConfig.gd` | All config values as typed properties; `apply_upgrade(name)` |
+| `SettingsManager` | `scripts/autoloads/SettingsManager.gd` | Audio bus setup; volume/mute API; key-binding save/load |
+| `SoundManager` | `scripts/autoloads/SoundManager.gd` | `play(id)`, `play_loop(key,id)`, `stop_loop(key)` |
+| `MusicManager` | `scripts/autoloads/MusicManager.gd` | `play_context("menu"\|"raid"\|"after_action")` — crossfade |
+| `SaveManager` | `scripts/autoloads/SaveManager.gd` | `load_slot(n)`, `save_slot(n, session)`, `delete_slot(n)` |
+| `GameSession` | `scripts/autoloads/GameSession.gd` | Per-raid cargo; `active_slot`, `raids_played`, `applied_upgrades`; `load_from_save()`, `write_to_save()` |
+| `TrainSpeedManager` | `scripts/autoloads/TrainSpeedManager.gd` | `current_train_speed`, `train_zoom_speed`, `trigger_zoom_away()` |
 
 ---
 
-## Signal Connections (wired in TrainBuilder.cs)
+## Signal Connections (wired in TrainBuilder.gd)
 
 ```
 ContainerNode.CargoDetached(string) → GameSession.OnCargoDetached(string)
@@ -160,11 +160,11 @@ Two camera sequences run at the start of `Main.tscn` before handing control to t
 
 **Analytical framing** (`ComputeFraming`): places the focused object at (0.25 W, 0.5 H) — centre of the left screen half.
 
-**Ring indicator** (`RingIndicator.cs`): screen-space bouncing arc, radius computed from `WorldRadius` (world-space) projected to pixels each frame.
+**Ring indicator** (`RingIndicator.gd`): screen-space bouncing arc, radius computed from `WorldRadius` (world-space) projected to pixels each frame.
 
 **Camera blend at handover** (both sequences): cutscene camera tweens to the player camera's exact world position + orientation, then `MakeCurrent()` switches — no visible pop.
 
-**During cutscene**: PlayerCar hidden + input disabled (`_captureDesired = false`), HUD hidden, `ObstacleSystem` paused (`ProcessModeEnum.Disabled`), `LevelManager._cutsceneActive = true`.
+**During cutscene**: PlayerCar hidden + input disabled (`_capture_desired = false`), HUD hidden, `ObstacleSystem` paused (`process_mode = PROCESS_MODE_DISABLED`), `LevelManager._cutscene_active = true`.
 
 → Use `/edit-cutscene` to modify waypoints, timing, text, or camera paths.
 
@@ -172,12 +172,12 @@ Two camera sequences run at the start of `Main.tscn` before handing control to t
 
 ## Known Deviations
 
-- `TrainBuilder.cs` attaches to a **child Node3D "Train"** in Main.tscn (not Main directly).
-- `LevelManager.cs` is a separate Node child of Main.tscn.
+- `TrainBuilder.gd` attaches to a **child Node3D "Train"** in Main.tscn (not Main directly).
+- `LevelManager.gd` is a separate Node child of Main.tscn.
 - `Turret` is child of `Camera3D` inside PlayerCar — required so barrels follow camera pitch.
-- `project/assembly_name` in `project.godot` must be `WildJam2603` — changing it breaks C# loading.
+- Opening the project with the **Mono** editor will re-add `"C#"` to `config/features` and a `[dotnet]` section in `project.godot` — always use the standard (non-Mono) editor build.
 - Bullet `Area3D.AreaEntered` is **unused** — hit detection is per-frame raycast only (anti-tunneling).
-- `TrainSpeedManager` has two decoupled speed values: `CurrentTrainSpeed` (scroll) and `TrainZoomSpeed` (physical zoom).
+- `TrainSpeedManager` has two decoupled speed values: `current_train_speed` (scroll) and `train_zoom_speed` (physical zoom).
 
 ---
 

@@ -67,7 +67,7 @@ func _ready() -> void:
 	var mesh_inst := MeshInstance3D.new()
 	mesh_inst.name = "MeshSlot"
 
-	var glb_mesh := _try_load_glb_mesh("res://assets/models/enemies/drone.glb")
+	var glb_mesh: Mesh = _try_load_glb_mesh("res://assets/models/enemies/drone.glb")
 	if glb_mesh != null:
 		mesh_inst.mesh = glb_mesh
 	else:

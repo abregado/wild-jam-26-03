@@ -17,7 +17,7 @@ const ZOOM_DURATION    := 2.0
 
 var _player_car: Node3D = null
 var _hud: Node = null
-var _train_builder: Node3D = null
+var _train_builder: TrainBuilder = null
 
 var _warning_timer: float = -1.0
 var _zoom_timer: float = -1.0
@@ -29,7 +29,7 @@ var _cutscene_active: bool = true
 func _ready() -> void:
 	_player_car    = get_parent().get_node("PlayerCar") as Node3D
 	_hud           = get_parent().get_node("HUD")
-	_train_builder = get_parent().get_node("Train") as Node3D
+	_train_builder = get_parent().get_node("Train") as TrainBuilder
 
 	# Position player near the front of the locomotive at start
 	var start_z := _train_builder.locomotive_z - 4.0
@@ -102,7 +102,7 @@ func _pre_scan_containers(count: int) -> void:
 	rng.randomize()
 	for i in range(taggable.size() - 1, 0, -1):
 		var j := rng.randi_range(0, i)
-		var tmp := taggable[i]
+		var tmp = taggable[i]
 		taggable[i] = taggable[j]
 		taggable[j] = tmp
 

@@ -28,7 +28,7 @@ func _build_visual() -> void:
 	var mesh_inst := MeshInstance3D.new()
 	mesh_inst.name = "MeshSlot"
 
-	var glb_mesh := _try_load_glb_mesh("res://assets/models/enemies/deployer.glb")
+	var glb_mesh: Mesh = _try_load_glb_mesh("res://assets/models/enemies/deployer.glb")
 	if glb_mesh != null:
 		mesh_inst.mesh = glb_mesh
 	else:

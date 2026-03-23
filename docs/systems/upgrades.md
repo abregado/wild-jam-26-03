@@ -1,6 +1,6 @@
 # Upgrade System
 
-After each raid the player enters the After-Action screen (`scenes/ui/AfterAction.tscn`, `scripts/ui/AfterAction.cs`). Three random affordable upgrades are presented as flip-cards.
+After each raid the player enters the After-Action screen (`scenes/ui/AfterAction.tscn`, `scripts/ui/AfterAction.gd`). Three random affordable upgrades are presented as flip-cards.
 
 ---
 
@@ -37,30 +37,30 @@ After each raid the player enters the After-Action screen (`scenes/ui/AfterActio
 
 ## Applying upgrades
 
-`GameConfig.ApplyUpgrade(string name)` finds the upgrade by name and iterates its modifiers:
+`GameConfig.apply_upgrade(name)` finds the upgrade by name and iterates its modifiers:
 
-```csharp
-// flat
-property += (float)modifier.Value;
+```gdscript
+# flat
+property += modifier["value"]
 
-// multiplier
-property *= (float)modifier.Value;
+# multiplier
+property *= modifier["value"]
 ```
 
-The property is modified in-place on the singleton. Config values are **not** reset between raids within the same session — they accumulate across purchases. A full reset happens when the game returns to `Main.tscn` and `GameConfig._Ready()` re-reads the JSON file.
+The property is modified in-place on the singleton. Config values are **not** reset between raids within the same session — they accumulate across purchases. A full reset happens when the game returns to `Main.tscn` and `GameConfig._ready()` re-reads the JSON file.
 
 ---
 
 ## Stat keys
 
-The `stat` field in a modifier must match the JSON config key (not the C# property name). For example:
+The `stat` field in a modifier must match the JSON config key (same as the GDScript property name in snake_case). For example:
 
-| C# property | JSON stat key |
+| GDScript property | JSON stat key |
 |---|---|
-| `TurretDamage` | `turret_damage` |
-| `BulletSpeed` | `bullet_speed` |
-| `DroneFireRate` | `drone_fire_rate` |
-| `SideChangeTime` | `side_change_time` |
+| `turret_damage` | `turret_damage` |
+| `bullet_speed` | `bullet_speed` |
+| `drone_fire_rate` | `drone_fire_rate` |
+| `side_change_time` | `side_change_time` |
 
 Full list: see `docs/systems/config.md`.
 

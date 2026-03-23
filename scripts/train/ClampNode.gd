@@ -51,7 +51,7 @@ func _build_mesh() -> void:
 	_mesh.name = "MeshSlot"
 
 	var glb_path := "res://assets/models/train/clamp_%s.glb" % ["single", "double", "triple", "four"][_setup]
-	var glb_mesh := _try_load_glb_mesh(glb_path)
+	var glb_mesh: Mesh = _try_load_glb_mesh(glb_path)
 
 	if glb_mesh != null:
 		_mesh.mesh = glb_mesh

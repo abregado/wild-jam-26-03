@@ -347,16 +347,16 @@ func _build_waypoints() -> Array:
 			entries.append([fr[0], fr[1], GameConfig.cutscene_text_clamp, top_clamp, 0.5, top_clamp.global_position.z])
 
 	# Waypoint D — random deployer
-	var deployers := _train_builder.all_deployers
+	var deployers: Array = _train_builder.all_deployers
 	if deployers.size() > 0:
-		var deployer := deployers[rng.randi_range(0, deployers.size() - 1)]
+		var deployer: Node3D = deployers[rng.randi_range(0, deployers.size() - 1)]
 		var fr := _compute_framing(deployer.global_position, Vector3(-12.0, 5.0, 2.0), _cam.fov)
 		entries.append([fr[0], fr[1], GameConfig.cutscene_text_deployer, deployer, 0.7, deployer.global_position.z])
 
 	# Waypoint E — random roof turret
-	var roof_turrets := _train_builder.all_roof_turrets
+	var roof_turrets: Array = _train_builder.all_roof_turrets
 	if roof_turrets.size() > 0:
-		var turret := roof_turrets[rng.randi_range(0, roof_turrets.size() - 1)]
+		var turret: Node3D = roof_turrets[rng.randi_range(0, roof_turrets.size() - 1)]
 		var fr := _compute_framing(turret.global_position, Vector3(-12.0, 5.0, 2.0), _cam.fov)
 		entries.append([fr[0], fr[1], GameConfig.cutscene_text_turret, turret, 0.7, turret.global_position.z])
 

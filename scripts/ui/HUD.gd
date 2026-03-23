@@ -52,7 +52,7 @@ func _process(_delta: float) -> void:
 	var max_back := absf(GameConfig.min_relative_velocity)
 	var max_fwd  := GameConfig.max_relative_velocity
 	var range_   := max_back + max_fwd
-	var normalized := (_player_car.relative_velocity + max_back) / range_
+	var normalized: float = (_player_car.relative_velocity + max_back) / range_
 	_speed_bar.value = clampf(normalized * 100.0, 0.0, 100.0)
 
 	# Train speed label

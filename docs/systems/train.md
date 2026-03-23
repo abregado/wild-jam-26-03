@@ -1,6 +1,6 @@
 # Train System
 
-Scripts: `scripts/train/TrainBuilder.cs`, `scripts/train/Carriage.cs`, `scripts/train/ContainerNode.cs`, `scripts/train/ClampNode.cs`
+Scripts: `scripts/train/TrainBuilder.gd`, `scripts/train/Carriage.gd`, `scripts/train/ContainerNode.gd`, `scripts/train/ClampNode.gd`
 
 ---
 
@@ -8,7 +8,7 @@ Scripts: `scripts/train/TrainBuilder.cs`, `scripts/train/Carriage.cs`, `scripts/
 
 - Train runs along the **Z axis**: Locomotive at highest +Z, Caboose at Z ≈ 0.
 - `TrainBuilder` assembles: Caboose at Z=0 → Carriages → Locomotive at Z=totalLength.
-- `TrainBuilder.LocomotiveZ` is the public accessor used for range checks.
+- `TrainBuilder.locomotive_z` is the public accessor used for range checks.
 - "Distance behind front" = `LocomotiveZ - playerZ` (positive = behind locomotive).
 
 ---
@@ -31,7 +31,7 @@ Scripts: `scripts/train/TrainBuilder.cs`, `scripts/train/Carriage.cs`, `scripts/
 
 ## TrainBuilder
 
-`TrainBuilder.cs` runs in `_Ready()` and:
+`TrainBuilder.gd` runs in `_ready()` and:
 
 1. Creates a Caboose at Z=0.
 2. Adds N random carriages (N ∈ [MinCarriages, MaxCarriages]).
@@ -40,7 +40,7 @@ Scripts: `scripts/train/TrainBuilder.cs`, `scripts/train/Carriage.cs`, `scripts/
 5. For each carriage: attaches 0–2 deployers and 0–1 roof turrets (probabilities tuned in code).
 6. Wires all container/deployer signals.
 
-`TrainBuilder.Rebuild()` can be called for a mid-session reset.
+`TrainBuilder.rebuild()` can be called for a mid-session reset.
 
 ---
 
@@ -77,7 +77,7 @@ ContainerNode.ContainerDestroyed()  → GameSession.OnContainerDestroyed()
 
 ## Cargo types
 
-Cargo types are defined in `config/game_config.json` under `cargo_types[]`. Each has a `name` and a `color` (hex string). `GameConfig.CargoTypes` exposes them as `List<CargoType>`.
+Cargo types are defined in `config/game_config.json` under `cargo_types[]`. Each has a `name` and a `color` (hex string). `GameConfig.cargo_types` exposes them as an `Array` of `Dictionary`.
 
 To add a new cargo type, use the `/add-cargo-type` skill.
 

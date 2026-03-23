@@ -80,7 +80,7 @@ func _build_fallback(id: String) -> Node3D:
 	sphere.height = sz * 0.2
 	sphere.material = mat
 
-	var particles := CpuParticles3D.new()
+	var particles := CPUParticles3D.new()
 	particles.amount = amt
 	particles.lifetime = lt
 	particles.one_shot = true

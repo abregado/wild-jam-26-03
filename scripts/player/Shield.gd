@@ -77,7 +77,7 @@ func _on_area_entered(other: Area3D) -> void:
 		return
 
 	var camera_forward := -_camera.global_transform.basis.z
-	var hit_dir := (bullet.global_position - global_position).normalized()
+	var hit_dir: Vector3 = (bullet.global_position - global_position).normalized()
 	var dot := clampf(camera_forward.dot(hit_dir), -1.0, 1.0)
 	var angle_deg := rad_to_deg(acos(dot))
 

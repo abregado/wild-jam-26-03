@@ -279,7 +279,7 @@ func _process_active(dt: float) -> void:
 	if _fire_cooldown > 0.0:
 		return
 
-	var is_flipping := _player_car.is_flipping_under if "is_flipping_under" in _player_car else false
+	var is_flipping: bool = _player_car.is_flipping_under if "is_flipping_under" in _player_car else false
 	if is_flipping:
 		_fire_cooldown = 0.2
 		return
