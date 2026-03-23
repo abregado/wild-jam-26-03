@@ -17,15 +17,15 @@ config/main_scene="res://scenes/ui/MainMenu.tscn"
 
 [autoload]
 
-GameConfig="*res://scripts/autoloads/GameConfig.cs"
-SettingsManager="*res://scripts/autoloads/SettingsManager.cs"
-SoundManager="*res://scripts/autoloads/SoundManager.cs"
-MusicManager="*res://scripts/autoloads/MusicManager.cs"
-SaveManager="*res://scripts/autoloads/SaveManager.cs"
-GameSession="*res://scripts/autoloads/GameSession.cs"
-TrainSpeedManager="*res://scripts/autoloads/TrainSpeedManager.cs"
-ObstacleManager="*res://scripts/environment/ObstacleManager.cs"
-VfxSpawner="*res://scripts/autoloads/VfxSpawner.cs"
+GameConfig="*res://scripts/autoloads/GameConfig.gd"
+SettingsManager="*res://scripts/autoloads/SettingsManager.gd"
+SoundManager="*res://scripts/autoloads/SoundManager.gd"
+MusicManager="*res://scripts/autoloads/MusicManager.gd"
+SaveManager="*res://scripts/autoloads/SaveManager.gd"
+GameSession="*res://scripts/autoloads/GameSession.gd"
+TrainSpeedManager="*res://scripts/autoloads/TrainSpeedManager.gd"
+ObstacleManager="*res://scripts/autoloads/ObstacleManager.gd"
+VfxSpawner="*res://scripts/autoloads/VfxSpawner.gd"
 
 [configuration]
 
@@ -33,7 +33,7 @@ config_version=5
 
 [dotnet]
 
-project/assembly_name="WildJam2603"
+project/assembly_name="Wild Jam 26-03"
 
 [filesystem]
 

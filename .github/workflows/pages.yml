@@ -21,49 +21,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Install wasm-tools workload
-        run: dotnet workload install wasm-tools
-
       - name: Cache Godot
         id: cache-godot
         uses: actions/cache@v4
         with:
           path: /opt/godot
-          key: godot-4.6.1-stable-mono
+          key: godot-4.6.1-stable
 
       - name: Download Godot
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
-          wget -q "https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_mono_linux_x86_64.zip"
-          unzip -q Godot_v4.6.1-stable_mono_linux_x86_64.zip -d /opt/godot
+          wget -q "https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_linux.x86_64.zip"
+          unzip -q Godot_v4.6.1-stable_linux.x86_64.zip -d /opt/godot
 
       - name: Install Godot
         run: |
-          chmod +x "/opt/godot/Godot_v4.6.1-stable_mono_linux_x86_64/Godot_v4.6.1-stable_mono_linux.x86_64"
-          sudo ln -sf "/opt/godot/Godot_v4.6.1-stable_mono_linux_x86_64/Godot_v4.6.1-stable_mono_linux.x86_64" /usr/local/bin/godot
+          chmod +x "/opt/godot/Godot_v4.6.1-stable_linux.x86_64"
+          sudo ln -sf "/opt/godot/Godot_v4.6.1-stable_linux.x86_64" /usr/local/bin/godot
 
       - name: Cache export templates
         id: cache-templates
         uses: actions/cache@v4
         with:
           path: ~/.local/share/godot/export_templates
-          key: godot-templates-4.6.1-stable-mono
+          key: godot-templates-4.6.1-stable
 
       - name: Download export templates
         if: steps.cache-templates.outputs.cache-hit != 'true'
         run: |
-          wget -q "https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_mono_export_templates.tpz"
-          mkdir -p ~/.local/share/godot/export_templates/4.6.1.stable.mono
-          unzip -q Godot_v4.6.1-stable_mono_export_templates.tpz -d /tmp/godot-templates
-          mv /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.6.1.stable.mono/
-
-      - name: Build C# solution
-        run: dotnet build WildJam2603.sln --configuration ExportRelease
+          wget -q "https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/4.6.1.stable
+          unzip -q Godot_v4.6.1-stable_export_templates.tpz -d /tmp/godot-templates
+          mv /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.6.1.stable/
 
       - name: Export Web
         run: |
