@@ -129,15 +129,15 @@ class UpgradeCard extends PanelContainer:
 			_name_label.modulate = Color(0.41, 0.41, 0.41, 1.0)
 			return
 
-		_name_label.text = _def["name"]
+		_name_label.text = _def.name
 
 		for c in _mod_list.get_children():
 			c.queue_free()
 
-		for m in _def["modifiers"]:
-			var stat: String   = m["stat"]
-			var flat: float    = m.get("flat", 0.0)
-			var mult: float    = m.get("multiplier", 1.0)
+		for m in _def.modifiers:
+			var stat: String   = m.stat
+			var flat: float    = m.flat
+			var mult: float    = m.multiplier
 			var found: bool    = stat in STAT_META
 			var stat_label: String = STAT_META[stat][0] if found else stat
 			var pos_is_good: bool  = STAT_META[stat][1] if found else true
@@ -156,8 +156,8 @@ class UpgradeCard extends PanelContainer:
 				_add_mod_row(stat_label, "\u00d7%s" % _fmt(mult), good)
 
 		var cost_parts := []
-		for k in _def["cost"]:
-			cost_parts.append("%d\u00d7 %s" % [_def["cost"][k], k])
+		for k in _def.cost:
+			cost_parts.append("%d\u00d7 %s" % [_def.cost[k], k])
 		_cost_label.text = "Cost: " + "  ".join(cost_parts)
 
 		refresh_affordability()
@@ -338,8 +338,7 @@ func _build_3d_viewport() -> void:
 
 	# Camera
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 0.4, 3.8)
-	cam.look_at(Vector3.ZERO, Vector3.UP)
+	cam.look_at_from_position(Vector3(0.0, 0.4, 3.8), Vector3.ZERO, Vector3.UP)
 	sv.add_child(cam)
 
 	# Key light

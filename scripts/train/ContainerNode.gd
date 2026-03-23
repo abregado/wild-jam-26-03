@@ -33,6 +33,8 @@ var cargo_color: Color = Color.GRAY
 var _max_hp: float = 0.0
 var _hp: float = 0.0
 var _beacon_count: int = 0
+var clamps: Array:
+	get: return _clamps
 var _clamps: Array = []
 var _living_clamps: int = 0
 var _mesh: MeshInstance3D = null

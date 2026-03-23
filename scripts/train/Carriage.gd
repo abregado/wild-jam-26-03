@@ -41,7 +41,9 @@ func set_slot_count(slots: int) -> void:
 
 	# Try to load the matching GLB
 	var glb_path := "res://assets/models/train/carriage_%d.glb" % clampi(slots, 1, 3)
-	var scene := load(glb_path) as PackedScene
+	if not ResourceLoader.exists(glb_path):
+		glb_path = "res://assets/models/train/carriage.glb"
+	var scene := load(glb_path) as PackedScene if ResourceLoader.exists(glb_path) else null
 	if scene != null:
 		var root := scene.instantiate() as Node3D
 		var body := root.find_child("Body") as MeshInstance3D

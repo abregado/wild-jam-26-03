@@ -22,7 +22,7 @@ var _blast_radius: float = 0.0
 var _speed: float = 0.0
 var _distance_traveled: float = 0.0
 var _has_hit: bool = false
-var _trail: CpuParticles3D = null
+var _trail: CPUParticles3D = null
 
 
 func initialize(damage: float, blast_radius: float, speed: float) -> void:
@@ -59,7 +59,7 @@ func _setup_trail() -> void:
 	fade.set_color(0, Color(1.0, 0.7, 0.2, 1.0))
 	fade.set_color(1, Color(1.0, 0.4, 0.05, 0.0))
 
-	_trail = CpuParticles3D.new()
+	_trail = CPUParticles3D.new()
 	_trail.amount = 24
 	_trail.lifetime = 0.15
 	_trail.one_shot = false

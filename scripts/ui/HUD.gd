@@ -169,7 +169,7 @@ func _get_action_glyph(action: String, size: int) -> Control:
 
 func _key_to_glyph_file(k: Key) -> String:
 	if k >= KEY_A and k <= KEY_Z:
-		var letter := char(int(k) - int(KEY_A) + int("a"[0]))
+		var letter := char(int(k) - KEY_A + "a".unicode_at(0))
 		return "keyboard_%s_outline.png" % letter
 	match k:
 		KEY_SPACE: return "keyboard_space_outline.png"
